@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS users (
     role_id integer,
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT email UNIQUE (email),
-    CONSTRAINT login UNIQUE (login)
---     CONSTRAINT role_id FOREIGN KEY (role_id)
---     REFERENCES roles (id) MATCH FULL
---     ON UPDATE CASCADE
---     ON DELETE RESTRICT
+    CONSTRAINT login UNIQUE (login),
+    CONSTRAINT role_id FOREIGN KEY (role_id)
+    REFERENCES roles (id) MATCH FULL
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
 );
 
 ALTER SEQUENCE user_id_seq OWNED BY users.id;
