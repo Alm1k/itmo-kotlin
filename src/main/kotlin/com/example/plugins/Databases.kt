@@ -10,8 +10,8 @@ import java.sql.*
 import kotlinx.coroutines.*
 
 fun Application.configureDatabases() {
-    DatabaseFactory.init()
-    val dbConnection: Connection = connectToPostgres(embedded = true)
+   // DatabaseFactory.init()
+    //val dbConnection: Connection = connectToPostgres(embedded = true)
 }
 
 /**

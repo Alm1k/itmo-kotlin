@@ -1,9 +1,7 @@
 package com.example
 
-import com.example.plugins.configureRouting
-import com.example.plugins.configureDatabases
-import com.example.plugins.configureSerialization
-import com.example.plugins.configureTemplating
+import com.example.dao.DatabaseFactory
+import com.example.plugins.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -27,6 +25,8 @@ fun Application.module() {
     install(Resources)
     configureTemplating()
     configureSerialization()
-    configureDatabases()
+    configureSecurity()
+    //configureDatabases()
+    DatabaseFactory.init()
     configureRouting()
 }

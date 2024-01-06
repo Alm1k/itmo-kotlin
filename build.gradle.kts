@@ -4,11 +4,13 @@ val logback_version: String by project
 val postgres_version: String by project
 val h2_version: String by project
 val exposed_version: String by project
+val bcrypt_version: String by project
 
 plugins {
     kotlin("jvm") version "1.9.21"
     id("io.ktor.plugin") version "2.3.7"
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21"
+    id("org.flywaydb.flyway") version "8.5.4"
 }
 
 group = "com.example"
@@ -46,6 +48,18 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
     implementation("io.ktor:ktor-server-resources:$ktor_version")
     implementation("io.ktor:ktor-server-freemarker:$ktor_version")
+    implementation("com.zaxxer:HikariCP:2.7.8")
+    implementation("org.flywaydb:flyway-core:6.5.2")
+    implementation("org.mindrot:jbcrypt:0.4")
+    implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
+    implementation("org.mindrot:jbcrypt:$bcrypt_version")
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+}
+
+flyway {
+    url = System.getenv("DB_URL")
+    user = System.getenv("DB_USER")
+    password = System.getenv("DB_PASSWORD")
+    baselineOnMigrate = true
 }

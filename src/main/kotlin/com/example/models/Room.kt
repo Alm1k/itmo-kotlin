@@ -9,8 +9,8 @@ data class Room(val id: Int, val number: Int)
 object Rooms : Table() {
     val id = integer("id").autoIncrement()
     val number = integer("number")
-    val peopleCount = integer("peopleCount")
-    val stage = integer("stage")
+    val capacity = integer("capacity")
+    val floor = integer("floor")
     val price = double("price")
     val vipStatus = bool("vipStatus").default(false)
 
