@@ -55,18 +55,6 @@ class UserServiceImpl : UserService {
         Users.deleteWhere { Users.id eq id } > 0
     }
 
-//    override suspend fun isDirector(): Boolean {
-//        Users.select { Users.roleId eq ERole.DIRECTOR.databaseId }
-//            .map(::resultRowToUser)
-//            .singleOrNull()
-//    }
-//
-//    override suspend fun isManager(): Boolean {
-//        Users.select { Users.roleId eq ERole.ADMIN.databaseId }
-//            .map(::resultRowToUser)
-//            .singleOrNull()
-//    }
-
     override suspend fun findUserByLogin(login: String): User? = dbQuery {
         logger.debug { "get user by login: $login" }
         Users.select { Users.login eq login }
@@ -83,6 +71,4 @@ class UserServiceImpl : UserService {
 }
 
 val service: UserService = UserServiceImpl().apply {
- //   runBlocking {
-//    }
 }

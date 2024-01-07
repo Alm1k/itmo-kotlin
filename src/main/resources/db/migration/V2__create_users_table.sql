@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     password character varying(200) NOT NULL,
     email character varying(50),
     id integer NOT NULL DEFAULT nextval('user_id_seq'::regclass),
-    role_id integer,
+    role_id integer NOT NULL,
     CONSTRAINT users_pkey PRIMARY KEY (id),
     CONSTRAINT email UNIQUE (email),
     CONSTRAINT login UNIQUE (login),

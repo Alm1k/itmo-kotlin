@@ -10,6 +10,4 @@ interface UserService {
     suspend fun deleteUser(id: Int): Boolean
     suspend fun findUserByLogin(login: String): User?
     suspend fun findUserByCredentials(credential: LoginRequest): User?
-//    suspend fun isManager(): Boolean
-//    suspend fun isDirector(): Boolean
 }
