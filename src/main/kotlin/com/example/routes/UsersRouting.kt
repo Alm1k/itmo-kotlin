@@ -12,9 +12,10 @@ import io.ktor.server.routing.*
 
 fun Route.usersRouting() {
 
-   // authenticate {
+    authenticate {
 
         route("/api/users") {
+
             get {
                 call.respond(service.getAllUsers())
             }
@@ -26,7 +27,6 @@ fun Route.usersRouting() {
                     user.password, user.login)
                 call.respond(HttpStatusCode.OK)
                 return@post
-
             }
 
             route("/{userId}") {
@@ -80,5 +80,5 @@ fun Route.usersRouting() {
         route("api/admins") {
 
         }
-   // }
+    }
 }

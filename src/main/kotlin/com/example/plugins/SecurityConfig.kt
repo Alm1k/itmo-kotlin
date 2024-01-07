@@ -17,7 +17,7 @@ fun Application.configureSecurity() {
 
             validate { credential ->
                 if (credential.payload.audience.contains(JwtConfig.jwtAudience) &&
-                    credential.payload.getClaim("username").asString().isNotEmpty()
+                    credential.payload.getClaim("login").asString().isNotEmpty()
                 )
                     JWTPrincipal(credential.payload)
                 else null

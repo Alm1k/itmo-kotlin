@@ -53,6 +53,7 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("io.github.oshai:kotlin-logging-jvm:5.1.0")
     implementation("org.mindrot:jbcrypt:$bcrypt_version")
+    implementation("io.ktor:ktor-serialization-jackson-jvm:$ktor_version")
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }
