@@ -1,12 +1,11 @@
 package com.example.routes
 
+import com.example.dao.user.userService
 import com.example.models.ApiError
-import com.example.models.User
-import com.example.dao.user.service
+import com.example.models.UserDTO
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
@@ -17,16 +16,7 @@ fun Route.usersRouting() {
         route("/api/users") {
 
             get {
-                call.respond(service.getAllUsers())
-            }
-
-            post {
-                val user = call.receive<User>()
-                service.addNewUser(
-                    user.name, user.surname, user.roleId,
-                    user.password, user.login)
-                call.respond(HttpStatusCode.OK)
-                return@post
+                call.respond(userService.getAllUsers())
             }
 
             route("/{userId}") {
@@ -34,19 +24,17 @@ fun Route.usersRouting() {
                 get {
                     val id = call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
                     try {
-                        val user: User? = service.getUser(id)
+                        val user: UserDTO? = userService.getUser(id)
                         if (user != null) {
                             call.respond(HttpStatusCode.OK, user)
-                        } else {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "USER_NOT_FOUND",
-                                    "User  with id $id was not found"
-                                )
-                            )
                         }
                     } catch (e: Exception) {
-                        // Handle exceptions or errors accordingly
+                        call.respond(
+                            HttpStatusCode.NotFound, message = ApiError(
+                                "USER_NOT_FOUND",
+                                "User  with id $id was not found"
+                            )
+                        )
                     }
                 }
 
@@ -54,7 +42,7 @@ fun Route.usersRouting() {
                     val userId = call.parameters["id"]?.toIntOrNull()
 
                     if (userId != null) {
-                        val deleted = service.deleteUser(userId)
+                        val deleted = userService.deleteUser(userId)
                         if (deleted) {
                             call.respond(HttpStatusCode.OK, "User deleted")
                         } else {
@@ -75,10 +63,6 @@ fun Route.usersRouting() {
                     }
                 }
             }
-        }
-
-        route("api/admins") {
-
         }
     }
 }

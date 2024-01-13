@@ -8,6 +8,7 @@ CREATE SEQUENCE IF NOT EXISTS role_id_seq
 CREATE TABLE IF NOT EXISTS roles (
     id integer NOT NULL DEFAULT nextval('role_id_seq'::regclass),
     role character varying NOT NULL,
+
     CONSTRAINT roles_pkey PRIMARY KEY (id)
 );
 

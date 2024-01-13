@@ -16,15 +16,6 @@ object DatabaseFactory {
     private val dbUser = appConfig.property("db.dbUser").getString()
     private val dbPassword = appConfig.property("db.dbPassword").getString()
     fun init() {
-
-//        #h2 test connection
-//        val driverClassName = "org.h2.Driver"
-//        val jdbcURL = "jdbc:h2:file:./build/db"
-//        val database = Database.connect(jdbcURL, driverClassName)
-//        transaction(database) {
-//            SchemaUtils.create(Users, Rooms)
-//        }
-
         Database.connect(hikari())
         val flyway = Flyway.configure().dataSource(dbUrl, dbUser, dbPassword).load()
         flyway.migrate()
@@ -45,6 +36,5 @@ object DatabaseFactory {
         config.validate()
         return HikariDataSource(config)
     }
-
 }
 

@@ -2,52 +2,52 @@ package com.example.dao.user
 
 import com.example.dao.DatabaseFactory.dbQuery
 import com.example.models.User
+import com.example.models.UserDTO
 import com.example.models.Users
 import com.example.routes.LoginRequest
 import com.example.utils.BcryptHasher
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class UserServiceImpl : UserService {
 
     private val logger = KotlinLogging.logger {}
 
-    private fun resultRowToUser(row: ResultRow) = User(
-        id = row[Users.id],
-        name = row[Users.name],
-        surname = row[Users.surname],
-        bDay = row[Users.bDay],
-        login = row[Users.login],
-        password = row[Users.password],
-        email = row[Users.email],
-        roleId = row[Users.roleId]
-        //roomId = row[Users.roomId]
-    )
-
-    override suspend fun getAllUsers(): List<User>  = dbQuery {
-        logger.debug { "get all users" }
-        Users.selectAll().map(::resultRowToUser)
+    override suspend fun mapUserFromResultRow(row: ResultRow): User {
+        return User.findById(row[Users.id]) ?: error("User not found")
     }
 
-    override suspend fun getUser(id: Int): User? = dbQuery {
+    override suspend fun getAllUsers(): List<UserDTO>  = withContext(Dispatchers.IO){
+        logger.debug { "get all users" }
+        return@withContext dbQuery {  Users.selectAll().map{ mapUserFromResultRow(it).toUser() } }
+    }
+
+    override suspend fun getUser(id: Int): UserDTO? = dbQuery {
         logger.debug { "get user by id: $id" }
         Users.select { Users.id eq id }
-            .map(::resultRowToUser)
+            .map { mapUserFromResultRow(it).toUser() }
             .singleOrNull()
     }
 
     override suspend fun addNewUser(name: String, surname: String, roleId: Int, login: String, password: String): User? = dbQuery {
-        logger.debug { "add new user" }
-        logger.debug {"name: $name surname: $surname login: $login roleId: $roleId password: $password"}
+        logger.debug { "add new user : name: $name surname: $surname login: $login roleId: $roleId password: $password" }
         val insertStatement = Users.insert {
             it[Users.name] = name
             it[Users.surname] = surname
             it[Users.password] = password
             it[Users.login] = login
-            it[Users.roleId] = roleId
+            it[Users.role_id] = roleId
         }
-        insertStatement.resultedValues?.singleOrNull()?.let(::resultRowToUser)
+        try {
+            insertStatement.resultedValues?.singleOrNull()?.let { mapUserFromResultRow(it) }
+        }
+        catch (e: Throwable) {
+            logger.debug { "user with such login already exists" }
+            null
+        }
     }
 
     override suspend fun deleteUser(id: Int): Boolean = dbQuery {
@@ -58,7 +58,7 @@ class UserServiceImpl : UserService {
     override suspend fun findUserByLogin(login: String): User? = dbQuery {
         logger.debug { "get user by login: $login" }
         Users.select { Users.login eq login }
-            .map(::resultRowToUser)
+            .map { mapUserFromResultRow(it) }
             .singleOrNull()
     }
 
@@ -70,5 +70,5 @@ class UserServiceImpl : UserService {
     }
 }
 
-val service: UserService = UserServiceImpl().apply {
+val userService: UserService = UserServiceImpl().apply {
 }

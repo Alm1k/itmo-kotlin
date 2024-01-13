@@ -25,7 +25,6 @@ object JwtConfig {
         return JWT.create()
             .withAudience(jwtAudience)
             .withIssuer(jwtIssuer)
-            .withClaim("id", user.id)
             .withClaim("login", user.login)
             .withExpiresAt(getExpiration())
             .sign(algorithm)
@@ -47,24 +46,5 @@ object JwtConfig {
     }
 
     private fun getExpiration() = Date(System.currentTimeMillis() + VALIDITY)
-
-    fun getLoginFromToken(token: String?): String {
-        return JWT.decode(token).getClaim("login").toString().replace("\"", "")
-    }
 }
-
-//fun JWTAuthenticationProvider.customConfigure() {
-//    verifier(JwtConfig.jwtVerifier)
-//    realm = JwtConfig.jwtRealm
-//    validate {
-//        with(it.payload) {
-//            val login = getClaim("login").isNull
-//            val id = getClaim("id").isNull
-//            if (login || id)
-//                null
-//            else
-//                JWTPrincipal(it.payload)
-//        }
-//    }
-//}
 

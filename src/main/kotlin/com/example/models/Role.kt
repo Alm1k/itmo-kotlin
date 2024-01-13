@@ -1,14 +1,24 @@
 package com.example.models
 
-import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.dao.IntEntity
+import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IntIdTable
 
-@Serializable
-data class Role(val id: Int, val role: ERole)
+class Role(id: EntityID<Int>): IntEntity(id) {
+    companion object : IntEntityClass<Role>(Roles)
 
-object Roles : Table() {
-    val id = integer("id").autoIncrement()
-    val role = varchar("role", 50)
+    var role by Roles.role
+    val users by User referrersOn Users.role_id
 
-    override val primaryKey = PrimaryKey(id)
+    fun toRole() = RoleDTO(id.value, role)
 }
+
+object Roles : IntIdTable() {
+    val role = varchar("role", 50)
+}
+
+data class RoleDTO (
+    val id: Int,
+    val role: String
+)
