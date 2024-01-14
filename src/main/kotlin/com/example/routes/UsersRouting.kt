@@ -2,7 +2,10 @@ package com.example.routes
 
 import com.example.dao.user.userService
 import com.example.models.ApiError
+import com.example.models.ERole
 import com.example.models.UserDTO
+import com.example.models.rolesMap
+import com.example.utils.authorized
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -13,10 +16,15 @@ fun Route.usersRouting() {
 
     authenticate {
 
-        route("/api/users") {
+        authorized(
+            rolesMap.getValue(ERole.DIRECTOR).toString(),
+            rolesMap.getValue(ERole.MANAGER).toString()) {
 
-            get {
-                call.respond(userService.getAllUsers())
+            route("/api/users") {
+
+                get {
+                    call.respond(userService.getAllUsers())
+                }
             }
 
             route("/{userId}") {
