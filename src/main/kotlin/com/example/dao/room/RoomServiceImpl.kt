@@ -31,7 +31,7 @@ class RoomServiceImpl : RoomService {
     }
 
     override suspend fun addRoom(number: Int, capacity: Int, floor: Int, price: Double,
-                                 isVip: Boolean,  managerInfoId: Int): RoomDTO? = dbQuery {
+                                 isVip: Boolean,  managerInfoId: Int, hotelId: Int): RoomDTO? = dbQuery {
         logger.debug { "add new room" }
         val insertStatement = Rooms.insert {
             it[Rooms.number] = number
@@ -39,6 +39,7 @@ class RoomServiceImpl : RoomService {
             it[Rooms.floor] = floor
             it[Rooms.price] = price
             it[Rooms.manager_info_id] = managerInfoId
+            it[Rooms.hotel_id] = hotelId
         }
         try {
             insertStatement.resultedValues?.singleOrNull()?.let {

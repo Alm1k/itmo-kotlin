@@ -1,7 +1,9 @@
 package com.example.routes
 
 import com.example.dao.user.userService
+import com.example.dao.hotelRating.hotelRatingService
 import com.example.models.ApiError
+import com.example.models.HotelRatingDTO
 import com.example.models.ERole
 import com.example.models.UserDTO
 import com.example.models.rolesMap
@@ -11,6 +13,7 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+
 
 fun Route.usersRouting() {
 
@@ -66,6 +69,26 @@ fun Route.usersRouting() {
                                 HttpStatusCode.BadRequest, message = ApiError(
                                     "INVALID_ID",
                                     "Invalid user ID"
+                                )
+                            )
+                        }
+                    }
+                }
+
+                route("/ratings") {
+                    get {
+                        val id = call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+
+                        try {
+                            val ratings: List<HotelRatingDTO>? = hotelRatingService.getUserRatings(id)
+                            if (ratings != null) {
+                                call.respond(HttpStatusCode.OK, ratings)
+                            }
+                        } catch (e: Exception) {
+                            call.respond(
+                                HttpStatusCode.NotFound, message = ApiError(
+                                    "USER_NOT_FOUND",
+                                    "User  with id $id was not found"
                                 )
                             )
                         }

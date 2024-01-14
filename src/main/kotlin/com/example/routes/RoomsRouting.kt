@@ -14,7 +14,7 @@ import io.ktor.server.routing.*
 //todo: set managerinfo for rooms in patch for cases where new managerinfo is created
 
 data class RoomRequest(val number: Int, val capacity: Int, val floor: Int, val price: Double,
-    val isVip: Boolean, val managerInfoId: Int)
+    val isVip: Boolean, val managerInfoId: Int, val hotelId: Int)
 fun Route.roomsRouting() {
 
     authenticate {
@@ -36,7 +36,8 @@ fun Route.roomsRouting() {
                         room.floor,
                         room.price,
                         room.isVip,
-                        room.managerInfoId
+                        room.managerInfoId,
+                        room.hotelId,
                     ) ?:
                     call.respond("new room created")
                 }

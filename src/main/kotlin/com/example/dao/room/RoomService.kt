@@ -8,6 +8,6 @@ interface RoomService {
     suspend fun getRoom(id: Int): RoomDTO?
     suspend fun getAllRooms(): List<RoomDTO>
     suspend fun addRoom(number: Int, capacity: Int, floor: Int, price: Double,
-                        isVip: Boolean,  managerInfoId: Int): RoomDTO?
+                        isVip: Boolean,  managerInfoId: Int, hotelId: Int): RoomDTO?
     suspend fun deleteRoom(id: Int): Boolean
 }

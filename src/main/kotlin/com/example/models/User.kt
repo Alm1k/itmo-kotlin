@@ -16,9 +16,10 @@ class User(id: EntityID<Int>): IntEntity(id) {
     var email by Users.email
     var role by Role referencedOn Users.role_id
     val roomBookings by RoomBooking referrersOn RoomBookings.user_id
+    val hotelRatings by HotelRating referrersOn HotelRatings.user_id
 
     fun toUser() = UserDTO(id.value, name, surname, bDay, login, password, email,
-        role.toRole(), roomBookings.map{ it.toRoomBooking() })
+        role.toRole(), roomBookings.map{ it.toRoomBooking() }, hotelRatings.map { it.toHotelRating() })
 }
 
 object Users : IntIdTable() {
@@ -40,5 +41,6 @@ data class UserDTO(
     val password: String,
     val email: String?,
     val role: RoleDTO,
-    val roomBookings: List<RoomBookingsDTO>
+    val roomBookings: List<RoomBookingsDTO>,
+    val ratings: List<HotelRatingDTO>,
 )

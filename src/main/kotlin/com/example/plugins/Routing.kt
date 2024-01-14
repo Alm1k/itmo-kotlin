@@ -1,11 +1,8 @@
 package com.example.plugins
 
-import com.example.routes.authRouting
-import com.example.routes.managerInfoRouting
-import com.example.routes.roomsRouting
+import com.example.routes.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
-import com.example.routes.usersRouting
 import io.ktor.server.response.*
 
 fun Application.configureRouting() {
@@ -17,5 +14,10 @@ fun Application.configureRouting() {
         authRouting()
         managerInfoRouting()
         roomsRouting()
+        hotelRouting()
+        directorInfoRouting()
+        rolesRouting()
+        cleanerInfoRouting()
+        requestRouting()
     }
 }

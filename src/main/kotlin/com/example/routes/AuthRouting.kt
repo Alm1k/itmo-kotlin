@@ -1,5 +1,7 @@
 package com.example.routes
 
+import com.example.dao.cleanerInfo.cleanerInfoService
+import com.example.dao.directorInfo.directorInfoService
 import com.example.dao.managerInfo.managerInfoService
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -15,7 +17,15 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.coroutines.delay
 
-data class RegisterRequest(val name: String, val surname: String, val login: String, val password: String)
+interface IRegisterRequest {
+    val name: String
+    val surname: String
+    val login: String
+    val password: String
+}
+data class RegisterRequest(override val name: String, override val surname: String, override val login: String, override val password: String): IRegisterRequest
+
+data class CleanerRegisterRequest(val hotelId: Int, override val name: String, override val surname: String, override val login: String, override val password: String) : IRegisterRequest
 data class LoginRequest(val login: String, val password: String)
 fun Route.authRouting() {
 
@@ -51,6 +61,44 @@ fun Route.authRouting() {
                         managerInfoService.addManagerInfo(user.id)
                     }
                     call.respond("new manager registered, managerInfo created")
+                }
+            }
+
+            route("/director") {
+                post {
+                    val creds = call.receive<RegisterRequest>()
+                    val user = userService.addNewUser(
+                        creds.name,
+                        creds.surname,
+                        ERole.DIRECTOR.databaseId,
+                        creds.login,
+                        BcryptHasher.hashPassword(creds.password)
+                    )
+
+                    if (user != null) {
+                        directorInfoService.addDirectorInfo(user.id)
+                    }
+
+                    call.respond("new director registered")
+                }
+            }
+
+            route("/cleaner") {
+                post {
+                    val creds = call.receive<CleanerRegisterRequest>()
+                    val user = userService.addNewUser(
+                        creds.name,
+                        creds.surname,
+                        ERole.CLEANER.databaseId,
+                        creds.login,
+                        BcryptHasher.hashPassword(creds.password)
+                    )
+
+                    if (user != null) {
+                        cleanerInfoService.addCleanerInfo(user.id, creds.hotelId)
+                    }
+
+                    call.respond("new cleaner registered")
                 }
             }
         }
