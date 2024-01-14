@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.example.models.User
 import com.typesafe.config.ConfigFactory
 import io.ktor.server.config.*
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 
@@ -22,12 +23,15 @@ object JwtConfig {
     private const val VALIDITY = 36_000_00 * 1 // 1h
 
     fun createJwtToken(user: User): String {
-        return JWT.create()
-            .withAudience(jwtAudience)
-            .withIssuer(jwtIssuer)
-            .withClaim("login", user.login)
-            .withExpiresAt(getExpiration())
-            .sign(algorithm)
+        return transaction {
+            JWT.create()
+                .withAudience(jwtAudience)
+                .withIssuer(jwtIssuer)
+                .withClaim("login", user.login)
+                .withClaim("role", user.role.toRole().role)
+                .withExpiresAt(getExpiration())
+                .sign(algorithm)
+        }
     }
 
     sealed class TokenException(message: String) : RuntimeException(message) {

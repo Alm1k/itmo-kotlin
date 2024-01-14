@@ -10,7 +10,7 @@ interface UserService {
     suspend fun getAllUsers(): List<UserDTO>
     suspend fun getUser(id: Int): UserDTO?
     suspend fun addNewUser(name: String, surname: String, roleId: Int,
-                                login: String, password: String): User?
+                                login: String, password: String): UserDTO?
     suspend fun deleteUser(id: Int): Boolean
     suspend fun findUserByLogin(login: String): User?
     suspend fun findUserByCredentials(credential: LoginRequest): User?

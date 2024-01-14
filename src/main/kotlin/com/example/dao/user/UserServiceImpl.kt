@@ -32,7 +32,7 @@ class UserServiceImpl : UserService {
             .singleOrNull()
     }
 
-    override suspend fun addNewUser(name: String, surname: String, roleId: Int, login: String, password: String): User? = dbQuery {
+    override suspend fun addNewUser(name: String, surname: String, roleId: Int, login: String, password: String): UserDTO? = dbQuery {
         logger.debug { "add new user : name: $name surname: $surname login: $login roleId: $roleId password: $password" }
         val insertStatement = Users.insert {
             it[Users.name] = name
@@ -42,7 +42,9 @@ class UserServiceImpl : UserService {
             it[Users.role_id] = roleId
         }
         try {
-            insertStatement.resultedValues?.singleOrNull()?.let { mapUserFromResultRow(it) }
+            insertStatement.resultedValues?.singleOrNull()?.let {
+                mapUserFromResultRow(it).toUser()
+            }
         }
         catch (e: Throwable) {
             logger.debug { "user with such login already exists" }
