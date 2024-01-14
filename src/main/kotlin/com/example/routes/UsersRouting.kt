@@ -25,49 +25,50 @@ fun Route.usersRouting() {
                 get {
                     call.respond(userService.getAllUsers())
                 }
-            }
 
-            route("/{userId}") {
+                route("/{userId}") {
 
-                get {
-                    val id = call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
-                    try {
-                        val user: UserDTO? = userService.getUser(id)
-                        if (user != null) {
-                            call.respond(HttpStatusCode.OK, user)
-                        }
-                    } catch (e: Exception) {
-                        call.respond(
-                            HttpStatusCode.NotFound, message = ApiError(
-                                "USER_NOT_FOUND",
-                                "User  with id $id was not found"
-                            )
-                        )
-                    }
-                }
-
-                delete {
-                    val userId = call.parameters["id"]?.toIntOrNull()
-
-                    if (userId != null) {
-                        val deleted = userService.deleteUser(userId)
-                        if (deleted) {
-                            call.respond(HttpStatusCode.OK, "User deleted")
-                        } else {
+                    get {
+                        val id =
+                            call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                        try {
+                            val user: UserDTO? = userService.getUser(id)
+                            if (user != null) {
+                                call.respond(HttpStatusCode.OK, user)
+                            }
+                        } catch (e: Exception) {
                             call.respond(
                                 HttpStatusCode.NotFound, message = ApiError(
                                     "USER_NOT_FOUND",
-                                    "User  with id $userId was not found"
+                                    "User  with id $id was not found"
                                 )
                             )
                         }
-                    } else {
-                        call.respond(
-                            HttpStatusCode.BadRequest, message = ApiError(
-                                "INVALID_ID",
-                                "Invalid user ID"
+                    }
+
+                    delete {
+                        val userId = call.parameters["userId"]?.toIntOrNull()
+
+                        if (userId != null) {
+                            val deleted = userService.deleteUser(userId)
+                            if (deleted) {
+                                call.respond(HttpStatusCode.OK, "User deleted")
+                            } else {
+                                call.respond(
+                                    HttpStatusCode.NotFound, message = ApiError(
+                                        "USER_NOT_FOUND",
+                                        "User  with id $userId was not found"
+                                    )
+                                )
+                            }
+                        } else {
+                            call.respond(
+                                HttpStatusCode.BadRequest, message = ApiError(
+                                    "INVALID_ID",
+                                    "Invalid user ID"
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

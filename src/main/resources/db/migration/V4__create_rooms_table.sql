@@ -9,5 +9,5 @@ CREATE TABLE IF NOT EXISTS rooms (
 
     FOREIGN KEY (manager_info_id) REFERENCES manager_infos(id) MATCH FULL
     ON UPDATE CASCADE
-    ON DELETE RESTRICT
+    ON DELETE CASCADE
 );

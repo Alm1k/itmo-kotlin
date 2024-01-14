@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS manager_infos (
     id serial PRIMARY KEY,
-    manager_id integer NOT NULL,
+    manager_id integer NOT NULL UNIQUE,
 
     CONSTRAINT manager_id FOREIGN KEY (manager_id)
     REFERENCES users (id) MATCH FULL
     ON UPDATE CASCADE
-    ON DELETE RESTRICT
+    ON DELETE CASCADE
 );
