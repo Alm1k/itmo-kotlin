@@ -27,7 +27,6 @@ fun Route.hotelRouting() {
 
                 post {
                     val creds = call.receive<SetHotelRequest>()
-                    //todo: pass in creds directorId instead of directorInfoId
                     try {
                         hotelService.addHotel(
                             creds.name,

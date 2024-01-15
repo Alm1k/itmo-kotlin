@@ -1,6 +1,7 @@
 package com.example.dao.hotel
 
 import com.example.dao.DatabaseFactory
+import com.example.dao.directorInfo.directorInfoService
 import com.example.models.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.jetbrains.exposed.sql.*
@@ -17,14 +18,16 @@ class HotelServiceImpl : HotelService {
     override suspend fun addHotel(
         name: String,
         stageCount: Int,
-        directorInfoId: Int
+        directorId: Int
     ): Hotel? = DatabaseFactory.dbQuery {
-        logger.debug { "add hotel with data name=$name, stageCount=$stageCount, directorInfoId=$directorInfoId" }
+
+        logger.debug { "add hotel with data name=$name, stageCount=$stageCount, directorId=$directorId" }
+        val directorInfo = directorInfoService.getDirectorInfoByDirectorId(directorId)
 
         val insertStatement = Hotels.insert {
             it[Hotels.name] = name
             it[Hotels.stageCount] = stageCount
-            it[Hotels.director_info_id] = directorInfoId
+            it[Hotels.director_info_id] = directorInfo!!.id
         }
         try {
             insertStatement.resultedValues?.singleOrNull()?.let { resultRowToHotel(it) }

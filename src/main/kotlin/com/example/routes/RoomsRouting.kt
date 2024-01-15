@@ -12,7 +12,7 @@ import io.ktor.server.routing.*
 
 data class RoomUpdateRequest(val managerId: Int, val price: Double)
 data class RoomRequest(val number: Int, val capacity: Int, val floor: Int, val price: Double,
-    val isVip: Boolean, val managerInfoId: Int, val hotelId: Int)
+    val isVip: Boolean, val managerId: Int, val hotelId: Int)
 
 fun Route.roomsRouting() {
 
@@ -35,7 +35,7 @@ fun Route.roomsRouting() {
                         room.floor,
                         room.price,
                         room.isVip,
-                        room.managerInfoId,
+                        room.managerId,
                         room.hotelId,
                     ) ?:
                     call.respond("new room created")
@@ -91,8 +91,6 @@ fun Route.roomsRouting() {
 
                         if (roomId != null) {
                             val updateInfo = call.receive<RoomUpdateRequest>()
-                            //todo: pass manager id instead og managerinfoid
-                           // val managerInfo = managerInfoService.getManagerInfoByManagerId(updateInfo.managerId)
                             val updated = roomService.updateRoom(roomId, updateInfo.managerId, updateInfo.price)
                             if (updated > 0) {
                                 call.respond(HttpStatusCode.OK, "Room info updated")

@@ -46,7 +46,7 @@ fun Route.directorInfoRouting() {
                             call.parameters["directorId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
 
                         try {
-                            val directorInfo: DirectorInfoDTO? = directorInfoService.getDirectorInfoById(id)
+                            val directorInfo: DirectorInfoDTO? = directorInfoService.getDirectorInfoByDirectorId(id)
 
                             if (directorInfo != null) {
                                 call.respond(HttpStatusCode.OK, directorInfo)

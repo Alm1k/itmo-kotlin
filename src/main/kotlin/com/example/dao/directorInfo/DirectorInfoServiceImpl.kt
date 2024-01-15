@@ -16,10 +16,10 @@ class DirectorInfoServiceImpl : DirectorInfoService {
 
         return DirectorInfo.findById(row[DirectorInfos.id]) ?: error("Such directorInfo doesn't exist")
     }
-    override suspend fun getDirectorInfoById(id: Int): DirectorInfoDTO? = DatabaseFactory.dbQuery {
-        logger.debug { "get directorInfo by id: $id" }
+    override suspend fun getDirectorInfoByDirectorId(id: Int): DirectorInfoDTO? = DatabaseFactory.dbQuery {
+        logger.debug { "get directorInfo by director id: $id" }
 
-        DirectorInfos.select { DirectorInfos.id eq id }
+        DirectorInfos.select { DirectorInfos.director_id eq id }
             .map { resultRowToDirectorInfo(it).toDirectorInfo() }
             .singleOrNull()
     }

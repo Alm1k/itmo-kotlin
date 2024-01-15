@@ -9,9 +9,9 @@ class ManagerInfo(id: EntityID<Int>): IntEntity(id) {
     companion object : IntEntityClass<ManagerInfo>(ManagerInfos)
 
     var manager by User referencedOn ManagerInfos.manager_id
-    val rooms by Room referrersOn Rooms.id
+    val rooms by Room referrersOn Rooms.manager_info_id
 
-    fun toManagerInfo() = ManagerInfoDTO(id.value, manager.id.value, rooms.map{ it.toRoom()})
+    fun toManagerInfo() = ManagerInfoDTO(id.value, manager.toUser(), rooms.map{ it.toRoom()})
 }
 
 object ManagerInfos : IntIdTable("manager_infos") {
@@ -20,6 +20,6 @@ object ManagerInfos : IntIdTable("manager_infos") {
 
 data class ManagerInfoDTO(
     val id: Int,
-    val user: Int,
+    val manager: UserDTO,
     val rooms: List<RoomDTO>
 )

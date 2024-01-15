@@ -1,6 +1,7 @@
 package com.example.dao.room
 
 import com.example.dao.DatabaseFactory.dbQuery
+import com.example.dao.managerInfo.managerInfoService
 import com.example.models.Room
 import com.example.models.RoomDTO
 import com.example.models.Rooms
@@ -41,14 +42,15 @@ class RoomServiceImpl : RoomService {
     }
 
     override suspend fun addRoom(number: Int, capacity: Int, floor: Int, price: Double,
-                                 isVip: Boolean,  managerInfoId: Int, hotelId: Int): RoomDTO? = dbQuery {
+                                 isVip: Boolean,  managerId: Int, hotelId: Int): RoomDTO? = dbQuery {
         logger.debug { "add new room" }
+        val managerInfo = managerInfoService.getManagerInfoByManagerId(managerId)
         val insertStatement = Rooms.insert {
             it[Rooms.number] = number
             it[Rooms.capacity] = capacity
             it[Rooms.floor] = floor
             it[Rooms.price] = price
-            it[Rooms.manager_info_id] = managerInfoId
+            it[Rooms.manager_info_id] = managerInfo!!.id
             it[Rooms.hotel_id] = hotelId
         }
         try {
@@ -67,16 +69,17 @@ class RoomServiceImpl : RoomService {
         Rooms.deleteWhere { Rooms.id eq id } > 0
     }
 
-    override suspend fun updateRoom(roomId: Int, managerInfoId: Int, price: Double): Int = dbQuery {
-        logger.debug { "update " }
+    override suspend fun updateRoom(roomId: Int, managerId: Int, price: Double): Int = dbQuery {
+        logger.debug { "update room with id $roomId"}
         try {
+            val managerInfo = managerInfoService.getManagerInfoByManagerId(managerId)
             Rooms.update({ Rooms.id eq roomId }) {
                 it[Rooms.price] = price
-                it[Rooms.manager_info_id] = managerInfoId
+                it[Rooms.manager_info_id] = managerInfo!!.id
             }
         } catch (e: Throwable) {
-            logger.debug { "user does not exists" }
-            error("user does not exists")
+            logger.debug { "room does not exists" }
+            error("room does not exists")
         }
     }
 }

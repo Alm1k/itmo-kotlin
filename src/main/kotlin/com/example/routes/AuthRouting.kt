@@ -27,6 +27,7 @@ data class RegisterRequest(override val name: String, override val surname: Stri
 
 data class CleanerRegisterRequest(val hotelId: Int, override val name: String, override val surname: String, override val login: String, override val password: String) : IRegisterRequest
 data class LoginRequest(val login: String, val password: String)
+
 fun Route.authRouting() {
 
     route("/register") {
@@ -46,6 +47,7 @@ fun Route.authRouting() {
         }
 
         authorized(rolesMap.getValue(ERole.DIRECTOR).toString()) {
+
             route("/manager") {
                 post {
                     val creds = call.receive<RegisterRequest>()
@@ -105,6 +107,7 @@ fun Route.authRouting() {
     }
 
     route("/login") {
+
         post("") {
             userService.findUserByCredentials(call.receive<LoginRequest>())?.let { token ->
                 call.respond(Token(JwtConfig.createJwtToken(token)))

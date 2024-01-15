@@ -21,7 +21,6 @@ fun Route.managerInfoRouting() {
 
             route("/api/managerInfo") {
 
-                //todo: fix
                 route("/{managerId}") {
                     get {
                         val id = call.parameters["managerId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
