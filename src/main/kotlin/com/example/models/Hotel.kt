@@ -45,7 +45,7 @@ object Hotels : IntIdTable("hotels") {
 data class HotelDTO(
     val id: Int,
     val name: String,
-    val roomCount: List<RoomDTO>,
+    val rooms: List<RoomDTO>,
     val stageCount: Int,
     val directorInfoId: Int,
     val rating: Double?,

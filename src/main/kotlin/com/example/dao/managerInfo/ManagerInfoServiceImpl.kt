@@ -17,9 +17,15 @@ class ManagerInfoServiceImpl : ManagerInfoService {
     }
     override suspend fun getManagerInfoByManagerId(id: Int): ManagerInfoDTO? = dbQuery {
         logger.debug { "get managerInfo by manager id: $id" }
-        ManagerInfos.select { ManagerInfos.manager_id eq id }
-            .map { mapManagerInfoFromResultRow(it).toManagerInfo() }
-            .singleOrNull()
+        try {
+            ManagerInfos.select { ManagerInfos.id eq id }
+                .map { mapManagerInfoFromResultRow(it).toManagerInfo() }
+                .firstOrNull()
+        }
+        catch(e: Throwable) {
+            logger.debug { "${e.message}" }
+            error("${e.message}" )
+        }
     }
 
     override suspend fun addManagerInfo(managerId: Int): ManagerInfo? = dbQuery {

@@ -10,4 +10,5 @@ interface RoomService {
     suspend fun addRoom(number: Int, capacity: Int, floor: Int, price: Double,
                         isVip: Boolean,  managerInfoId: Int, hotelId: Int): RoomDTO?
     suspend fun deleteRoom(id: Int): Boolean
+    suspend fun updateRoom(roomId: Int, managerInfoId: Int, price: Double): Int
 }

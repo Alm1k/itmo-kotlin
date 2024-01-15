@@ -4,7 +4,7 @@ import com.example.models.Hotel
 import com.example.models.HotelDTO
 
 interface HotelService {
-    suspend fun addHotel(name: String, stageCount: Int, directorId: Int): Hotel?
+    suspend fun addHotel(name: String, stageCount: Int, directorInfoId: Int): Hotel?
 
     suspend fun changeDirector(hotelId: Int, directorId: Int): Int?
 

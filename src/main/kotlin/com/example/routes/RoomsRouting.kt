@@ -1,7 +1,6 @@
 package com.example.routes
 
 import com.example.dao.room.roomService
-import com.example.dao.user.userService
 import com.example.models.*
 import com.example.utils.authorized
 import io.ktor.http.*
@@ -11,10 +10,10 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-//todo: set managerinfo for rooms in patch for cases where new managerinfo is created
-
+data class RoomUpdateRequest(val managerId: Int, val price: Double)
 data class RoomRequest(val number: Int, val capacity: Int, val floor: Int, val price: Double,
     val isVip: Boolean, val managerInfoId: Int, val hotelId: Int)
+
 fun Route.roomsRouting() {
 
     authenticate {
@@ -62,16 +61,11 @@ fun Route.roomsRouting() {
                         }
                     }
 
-                    patch {
-                        val managerInfoId = call.parameters["managerInfoId"]?.toIntOrNull()
-
-                    }
-
                     delete {
                         val roomId = call.parameters["roomId"]?.toIntOrNull()
 
                         if (roomId != null) {
-                            val deleted = userService.deleteUser(roomId)
+                            val deleted = roomService.deleteRoom(roomId)
                             if (deleted) {
                                 call.respond(HttpStatusCode.OK, "Room deleted")
                             } else {
@@ -87,6 +81,34 @@ fun Route.roomsRouting() {
                                 HttpStatusCode.BadRequest, message = ApiError(
                                     "INVALID_ID",
                                     "Invalid room ID"
+                                )
+                            )
+                        }
+                    }
+
+                    patch {
+                        val roomId = call.parameters["roomId"]?.toIntOrNull()
+
+                        if (roomId != null) {
+                            val updateInfo = call.receive<RoomUpdateRequest>()
+                            //todo: pass manager id instead og managerinfoid
+                           // val managerInfo = managerInfoService.getManagerInfoByManagerId(updateInfo.managerId)
+                            val updated = roomService.updateRoom(roomId, updateInfo.managerId, updateInfo.price)
+                            if (updated > 0) {
+                                call.respond(HttpStatusCode.OK, "Room info updated")
+                            } else {
+                                call.respond(
+                                    HttpStatusCode.NotFound, message = ApiError(
+                                        "ROOM_NOT_FOUND",
+                                        "Room with id $roomId was not found"
+                                    )
+                                )
+                            }
+                        } else {
+                            call.respond(
+                                HttpStatusCode.BadRequest, message = ApiError(
+                                    "INVALID_ID",
+                                    "Invalid user ID"
                                 )
                             )
                         }

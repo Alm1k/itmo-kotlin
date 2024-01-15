@@ -21,12 +21,13 @@ fun Route.hotelRouting() {
 
     authenticate {
 
-        route("/api/hotel") {
-            authorized(rolesMap.getValue(ERole.DIRECTOR).toString(), rolesMap.getValue(ERole.MANAGER).toString()) {
+        route("/api/hotels") {
+            authorized(rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString()) {
 
                 post {
                     val creds = call.receive<SetHotelRequest>()
-
+                    //todo: pass in creds directorId instead of directorInfoId
                     try {
                         hotelService.addHotel(
                             creds.name,

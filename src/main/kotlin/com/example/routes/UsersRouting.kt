@@ -11,9 +11,11 @@ import com.example.utils.authorized
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+data class userUpdateRequest(val bDay: String, val email: String)
 
 fun Route.usersRouting() {
 
@@ -73,6 +75,33 @@ fun Route.usersRouting() {
                             )
                         }
                     }
+
+                    patch {
+                        val userId = call.parameters["userId"]?.toIntOrNull()
+
+                        if (userId != null) {
+                            val additionalUserInfo = call.receive<userUpdateRequest>()
+                            val updated = userService.updateUser(userId, additionalUserInfo.bDay, additionalUserInfo.email)
+                            if (updated > 0) {
+                                call.respond(HttpStatusCode.OK, "User info updated")
+                            } else {
+                                call.respond(
+                                    HttpStatusCode.NotFound, message = ApiError(
+                                        "USER_NOT_FOUND",
+                                        "User  with id $userId was not found"
+                                    )
+                                )
+                            }
+                        } else {
+                            call.respond(
+                                HttpStatusCode.BadRequest, message = ApiError(
+                                    "INVALID_ID",
+                                    "Invalid user ID"
+                                )
+                            )
+                        }
+                    }
+                    }
                 }
 
                 route("/ratings") {
@@ -96,5 +125,4 @@ fun Route.usersRouting() {
                 }
             }
         }
-    }
-}
+ }

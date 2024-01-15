@@ -17,14 +17,14 @@ class HotelServiceImpl : HotelService {
     override suspend fun addHotel(
         name: String,
         stageCount: Int,
-        directorId: Int
+        directorInfoId: Int
     ): Hotel? = DatabaseFactory.dbQuery {
-        logger.debug { "add hotel with data name=$name, stageCount=$stageCount, directorId=$directorId" }
+        logger.debug { "add hotel with data name=$name, stageCount=$stageCount, directorInfoId=$directorInfoId" }
 
         val insertStatement = Hotels.insert {
             it[Hotels.name] = name
             it[Hotels.stageCount] = stageCount
-            it[Hotels.director_info_id] = directorId
+            it[Hotels.director_info_id] = directorInfoId
         }
         try {
             insertStatement.resultedValues?.singleOrNull()?.let { resultRowToHotel(it) }
@@ -34,7 +34,7 @@ class HotelServiceImpl : HotelService {
         }
     }
 
-    override suspend fun changeDirector(hotelId: Int, directorId: Int): Int? = DatabaseFactory.dbQuery {
+    override suspend fun changeDirector(hotelId: Int, directorId: Int): Int = DatabaseFactory.dbQuery {
         logger.debug { "change director for hotel $hotelId on director $directorId" }
 
         DirectorInfo.findById(directorId) ?: error("Director does not exists")
@@ -71,7 +71,7 @@ class HotelServiceImpl : HotelService {
         }
     }
 
-    override suspend fun updateHotel(hotelId: Int, name: String, stageCount: Int): Int? = DatabaseFactory.dbQuery {
+    override suspend fun updateHotel(hotelId: Int, name: String, stageCount: Int): Int = DatabaseFactory.dbQuery {
         logger.debug { "update hotel $hotelId info name = $name, stageCount = $stageCount" }
 
         try {

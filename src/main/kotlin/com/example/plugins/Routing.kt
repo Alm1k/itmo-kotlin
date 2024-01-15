@@ -16,7 +16,6 @@ fun Application.configureRouting() {
         roomsRouting()
         hotelRouting()
         directorInfoRouting()
-        rolesRouting()
         cleanerInfoRouting()
         requestRouting()
     }

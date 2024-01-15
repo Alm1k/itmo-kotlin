@@ -70,6 +70,19 @@ class UserServiceImpl : UserService {
         BcryptHasher.checkPassword(credential.password, user)
         return user
     }
+
+    override suspend fun updateUser(userId: Int, bDay: String, email: String): Int = dbQuery {
+        logger.debug { "update user with id: $userId - set bDay: $bDay, email: $email" }
+        try {
+            Users.update({ Users.id eq userId }) {
+                it[Users.bDay] = bDay
+                it[Users.email] = email
+            }
+        } catch (e: Throwable) {
+            logger.debug { "user does not exists" }
+            error("user does not exists")
+        }
+    }
 }
 
 val userService: UserService = UserServiceImpl().apply {

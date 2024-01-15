@@ -5,8 +5,6 @@ import com.example.models.Room
 import com.example.models.RoomDTO
 import com.example.models.Rooms
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
@@ -18,16 +16,28 @@ class RoomServiceImpl : RoomService {
         return Room.findById(row[Rooms.id]) ?: error("Room not found")
     }
 
-    override suspend fun getAllRooms(): List<RoomDTO>  = withContext(Dispatchers.IO){
+    override suspend fun getAllRooms(): List<RoomDTO>  = dbQuery{
         logger.debug { "get all rooms" }
-        return@withContext dbQuery {  Rooms.selectAll().map{ mapRoomFromResultRow(it).toRoom() } }
+        try {
+            Rooms.selectAll().map { mapRoomFromResultRow(it).toRoom() }
+        }
+        catch(e: Throwable) {
+            logger.debug { "${e.message}" }
+            error("${e.message}" )
+        }
     }
 
     override suspend fun getRoom(id: Int): RoomDTO? = dbQuery {
         logger.debug { "get user by id: $id" }
-        Rooms.select { Rooms.id eq id }
-            .map { mapRoomFromResultRow(it).toRoom() }
-            .singleOrNull()
+        try {
+            Rooms.select { Rooms.id eq id }
+                .map { mapRoomFromResultRow(it).toRoom() }
+                .singleOrNull()
+        }
+        catch(e: Throwable) {
+            logger.debug { "${e.message}" }
+            error("${e.message}" )
+        }
     }
 
     override suspend fun addRoom(number: Int, capacity: Int, floor: Int, price: Double,
@@ -47,7 +57,7 @@ class RoomServiceImpl : RoomService {
             }
         }
         catch (e: Throwable) {
-            logger.debug { "$e" }
+            logger.debug { "${e.message}" }
             null
         }
     }
@@ -57,6 +67,18 @@ class RoomServiceImpl : RoomService {
         Rooms.deleteWhere { Rooms.id eq id } > 0
     }
 
+    override suspend fun updateRoom(roomId: Int, managerInfoId: Int, price: Double): Int = dbQuery {
+        logger.debug { "update " }
+        try {
+            Rooms.update({ Rooms.id eq roomId }) {
+                it[Rooms.price] = price
+                it[Rooms.manager_info_id] = managerInfoId
+            }
+        } catch (e: Throwable) {
+            logger.debug { "user does not exists" }
+            error("user does not exists")
+        }
+    }
 }
 
 val roomService: RoomService = RoomServiceImpl().apply {
