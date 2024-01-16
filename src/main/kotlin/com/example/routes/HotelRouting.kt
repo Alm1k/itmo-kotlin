@@ -19,11 +19,18 @@ data class UpdateDirectorRequest(val directorId: Int)
 data class RatingRequest(val userId: Int, val rate: Int)
 fun Route.hotelRouting() {
 
-    authenticate {
+    route("/api/hotels") {
 
-        route("/api/hotels") {
-            authorized(rolesMap.getValue(ERole.DIRECTOR).toString(),
-                rolesMap.getValue(ERole.MANAGER).toString()) {
+        authenticate {
+
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString()
+            ) {
+
+                get {
+                    call.respond(HttpStatusCode.OK, hotelService.getAllHotels())
+                }
 
                 post {
                     val creds = call.receive<SetHotelRequest>()
@@ -84,54 +91,60 @@ fun Route.hotelRouting() {
                     }
                 }
             }
+        }
 
-            get {
-                call.respond(HttpStatusCode.OK, hotelService.getAllHotels())
-            }
+        authenticate {
 
-            route("/{hotelId}") {
-                get {
-                    val id = call.parameters["hotelId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
-
-                    try {
-                        val hotel: HotelDTO? = hotelService.getHotel(id)
-
-                        if (hotel != null) {
-                            call.respond(HttpStatusCode.OK, hotel)
-                        }
-                    } catch (e: Exception) {
-                        call.respond(
-                            HttpStatusCode.NotFound, message = ApiError(
-                                "HOTEL_NOT_FOUND",
-                                "$e: Hotel with id $id was not found"
-                            )
-                        )
-                    }
-                }
-
-                route("/rate") {
-                    post {
-                        val hotelId = call.parameters["hotelId"]?.toIntOrNull()
-                            ?: throw java.lang.IllegalArgumentException("Invalid Hotel Id")
-                        val data = call.receive<RatingRequest>()
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString(),
+                rolesMap.getValue(ERole.USER).toString()
+            ) {
+                route("/{hotelId}") {
+                    get {
+                        val id =
+                            call.parameters["hotelId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
 
                         try {
-                            hotelRatingService.addHotelRating(
-                                data.rate,
-                                data.userId,
-                                hotelId,
-                            )
-                            call.respond(
-                                HttpStatusCode.OK,
-                                "Rating for hotel ${data.userId} from user ${data.userId} created"
-                            )
+                            val hotel: HotelDTO? = hotelService.getHotel(id)
+
+                            if (hotel != null) {
+                                call.respond(HttpStatusCode.OK, hotel)
+                            }
                         } catch (e: Exception) {
                             call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "",
-                                    "$e: Rating already exists"
+                                HttpStatusCode.NotFound, message = ApiError(
+                                    "HOTEL_NOT_FOUND",
+                                    "$e: Hotel with id $id was not found"
                                 )
                             )
+                        }
+                    }
+
+                    route("/rate") {
+                        post {
+                            val hotelId = call.parameters["hotelId"]?.toIntOrNull()
+                                ?: throw java.lang.IllegalArgumentException("Invalid Hotel Id")
+                            val data = call.receive<RatingRequest>()
+
+                            try {
+                                hotelRatingService.addHotelRating(
+                                    data.rate,
+                                    data.userId,
+                                    hotelId,
+                                )
+                                call.respond(
+                                    HttpStatusCode.OK,
+                                    "Rating for hotel ${data.userId} from user ${data.userId} created"
+                                )
+                            } catch (e: Exception) {
+                                call.respond(
+                                    HttpStatusCode.BadRequest, message = ApiError(
+                                        "",
+                                        "$e: Rating already exists"
+                                    )
+                                )
+                            }
                         }
                     }
                 }

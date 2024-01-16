@@ -16,11 +16,19 @@ data class CleaningRequest(val cleanerId: Int, val hotelId: Int, val roomId: Int
 
 fun Route.requestRouting() {
 
-    authenticate {
+    route("/api/requests") {
 
-        route("/api/requests") {
+        route("/cleanings") {
 
-            route("/cleanings") {
+        authenticate {
+
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString(),
+                rolesMap.getValue(ERole.CLEANER).toString(),
+                rolesMap.getValue(ERole.USER).toString()
+            ) {
+
                 post {
                     val data = call.receive<CleaningRequest>()
 
@@ -36,6 +44,10 @@ fun Route.requestRouting() {
                         )
                     }
                 }
+            }
+        }
+
+        authenticate {
 
                 authorized(
                     rolesMap.getValue(ERole.DIRECTOR).toString(),
@@ -63,7 +75,7 @@ fun Route.requestRouting() {
                         }
                     }
                 }
-            }
         }
+    }
     }
 }

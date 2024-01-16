@@ -13,7 +13,7 @@ class RoomBooking(id: EntityID<Int>): IntEntity(id) {
     var user by User referencedOn RoomBookings.user_id
     var room by Room referencedOn RoomBookings.room_id
 
-    fun toRoomBooking() = RoomBookingsDTO(fromDate, toDate, user.id.value, room.id.value)
+    fun toRoomBooking() = RoomBookingsDTO(fromDate, toDate, room.toRoom(), user.id.value)
 }
 
 object RoomBookings : IntIdTable("room_bookings") {
@@ -26,6 +26,6 @@ object RoomBookings : IntIdTable("room_bookings") {
 data class RoomBookingsDTO(
     val fromDate: String,
     val toDate: String,
-    val roomId: Int,
+    val room: RoomDTO,
     val userId: Int
 )

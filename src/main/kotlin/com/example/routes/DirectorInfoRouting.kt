@@ -18,7 +18,9 @@ fun Route.directorInfoRouting() {
 
     authenticate {
 
-        authorized(rolesMap.getValue(ERole.DIRECTOR).toString()) {
+        authorized(
+            rolesMap.getValue(ERole.DIRECTOR).toString()
+        ) {
 
             route("/api/directorInfo") {
 

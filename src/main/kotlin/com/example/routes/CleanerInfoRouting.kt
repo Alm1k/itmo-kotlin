@@ -14,10 +14,14 @@ import io.ktor.server.routing.*
 data class CleanerInfo(val cleanerId: Int, val hotelId: Int)
 fun Route.cleanerInfoRouting() {
 
-    authenticate {
+    route("/api/cleanerInfo") {
 
-        authorized(rolesMap.getValue(ERole.DIRECTOR).toString(), rolesMap.getValue(ERole.MANAGER).toString()) {
-            route("/api/cleanerInfo") {
+        authenticate {
+
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString()
+            ) {
 
                 post {
                     val data = call.receive<CleanerInfo>()
@@ -36,53 +40,56 @@ fun Route.cleanerInfoRouting() {
                         )
                     }
                 }
+            }
+        }
 
-                authorized(
-                    rolesMap.getValue(ERole.DIRECTOR).toString(),
-                    rolesMap.getValue(ERole.MANAGER).toString(),
-                    rolesMap.getValue(ERole.CLEANER).toString()
-                ) {
+        authenticate {
 
-                    route("/{cleanerId}") {
-                        get {
-                            val id =
-                                call.parameters["cleanerId"]?.toIntOrNull()
-                                    ?: throw IllegalArgumentException("Invalid ID")
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString(),
+                rolesMap.getValue(ERole.CLEANER).toString()
+            ) {
 
-                            try {
-                                val cleanerInfo: CleanerInfoDTO? = cleanerInfoService.getCleanerInfoById(id)
-
-                                if (cleanerInfo != null) {
-                                    call.respond(HttpStatusCode.OK, cleanerInfo)
-                                }
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "$e: Cleaner with id $id was not found"
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    route("/cleanings") {
-                        get {
-                            val id = call.parameters["cleanerId"]?.toIntOrNull()
+                route("/{cleanerId}") {
+                    get {
+                        val id =
+                            call.parameters["cleanerId"]?.toIntOrNull()
                                 ?: throw IllegalArgumentException("Invalid ID")
 
-                            try {
-                                val cleaning: List<CleaningDTO> = cleaningService.getCleaningsByCleaner(id)
+                        try {
+                            val cleanerInfo: CleanerInfoDTO? = cleanerInfoService.getCleanerInfoByCleanerId(id)
 
-                                call.respond(HttpStatusCode.OK, cleaning)
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "$e"
-                                    )
-                                )
+                            if (cleanerInfo != null) {
+                                call.respond(HttpStatusCode.OK, cleanerInfo)
                             }
+                        } catch (e: Exception) {
+                            call.respond(
+                                HttpStatusCode.NotFound, message = ApiError(
+                                    "",
+                                    "$e: Cleaner with id $id was not found"
+                                )
+                            )
+                        }
+                    }
+                }
+
+                route("/cleanings") {
+                    get {
+                        val id = call.parameters["cleanerId"]?.toIntOrNull()
+                            ?: throw IllegalArgumentException("Invalid ID")
+
+                        try {
+                            val cleaning: List<CleaningDTO> = cleaningService.getCleaningsByCleaner(id)
+
+                            call.respond(HttpStatusCode.OK, cleaning)
+                        } catch (e: Exception) {
+                            call.respond(
+                                HttpStatusCode.NotFound, message = ApiError(
+                                    "",
+                                    "$e"
+                                )
+                            )
                         }
                     }
                 }

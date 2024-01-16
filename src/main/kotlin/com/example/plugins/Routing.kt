@@ -18,5 +18,6 @@ fun Application.configureRouting() {
         directorInfoRouting()
         cleanerInfoRouting()
         requestRouting()
+        roomBookingsRouting()
     }
 }

@@ -45,8 +45,7 @@ class UserServiceImpl : UserService {
             insertStatement.resultedValues?.singleOrNull()?.let {
                 mapUserFromResultRow(it).toUser()
             }
-        }
-        catch (e: Throwable) {
+        } catch (e: Throwable) {
             logger.debug { "user with such login already exists" }
             null
         }

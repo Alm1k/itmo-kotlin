@@ -21,8 +21,7 @@ class RoomServiceImpl : RoomService {
         logger.debug { "get all rooms" }
         try {
             Rooms.selectAll().map { mapRoomFromResultRow(it).toRoom() }
-        }
-        catch(e: Throwable) {
+        } catch(e: Throwable) {
             logger.debug { "${e.message}" }
             error("${e.message}" )
         }
@@ -34,8 +33,7 @@ class RoomServiceImpl : RoomService {
             Rooms.select { Rooms.id eq id }
                 .map { mapRoomFromResultRow(it).toRoom() }
                 .singleOrNull()
-        }
-        catch(e: Throwable) {
+        } catch(e: Throwable) {
             logger.debug { "${e.message}" }
             error("${e.message}" )
         }
@@ -57,8 +55,7 @@ class RoomServiceImpl : RoomService {
             insertStatement.resultedValues?.singleOrNull()?.let {
                 mapRoomFromResultRow(it).toRoom()
             }
-        }
-        catch (e: Throwable) {
+        } catch (e: Throwable) {
             logger.debug { "${e.message}" }
             null
         }

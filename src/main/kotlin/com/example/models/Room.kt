@@ -15,10 +15,10 @@ class Room(id: EntityID<Int>): IntEntity(id) {
     var isVip by Rooms.isVip
     val roomBookings by RoomBooking referrersOn RoomBookings.room_id
     var managerInfo by ManagerInfo referencedOn Rooms.manager_info_id
-    var hotelId by Hotel referencedOn Rooms.hotel_id
+    var hotel by Hotel referencedOn Rooms.hotel_id
 
     fun toRoom() = RoomDTO(id.value, number, capacity, floor, price, isVip,
-        managerInfo.id.value, roomBookings.map{ it.toRoomBooking() }, hotelId.id.value)
+        managerInfo.id.value, hotel.id.value)
 }
 
 object Rooms : IntIdTable() {
@@ -39,6 +39,5 @@ data class RoomDTO(
     val price: Double,
     val isVip: Boolean,
     val managerInfoId: Int,
-    val roomBookings: List<RoomBookingsDTO>,
-    val hotelId: Int,
+    val hotelId: Int
 )

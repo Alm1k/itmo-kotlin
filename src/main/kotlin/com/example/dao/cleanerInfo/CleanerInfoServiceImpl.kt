@@ -39,10 +39,10 @@ class CleanerInfoServiceImpl : CleanerInfoService {
         }
     }
 
-    override suspend fun getCleanerInfoById(id: Int): CleanerInfoDTO? = DatabaseFactory.dbQuery {
-        logger.debug { "get cleanerInfo by id: $id" }
+    override suspend fun getCleanerInfoByCleanerId(id: Int): CleanerInfoDTO? = DatabaseFactory.dbQuery {
+        logger.debug { "get cleanerInfo by cleaner id: $id" }
 
-        CleanerInfos.select { CleanerInfos.id eq id }
+        CleanerInfos.select { CleanerInfos.cleaner_id eq id }
             .map { resultRowToCleanerInfo(it).toCleanerInfo() }
             .singleOrNull()
     }

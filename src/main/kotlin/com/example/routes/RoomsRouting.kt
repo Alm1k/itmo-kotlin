@@ -16,13 +16,15 @@ data class RoomRequest(val number: Int, val capacity: Int, val floor: Int, val p
 
 fun Route.roomsRouting() {
 
-    authenticate {
+    route("/api/rooms") {
 
-        authorized(
-            rolesMap.getValue(ERole.DIRECTOR).toString(),
-            rolesMap.getValue(ERole.MANAGER).toString()) {
+        authenticate {
 
-            route("/api/rooms") {
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString()
+            ) {
+
 
                 get {
                     call.respond(roomService.getAllRooms())
@@ -37,29 +39,10 @@ fun Route.roomsRouting() {
                         room.isVip,
                         room.managerId,
                         room.hotelId,
-                    ) ?:
-                    call.respond("new room created")
+                    ) ?: call.respond("new room created")
                 }
 
                 route("/{roomId}") {
-
-                    get {
-                        val id =
-                            call.parameters["roomId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
-                        try {
-                            val room: RoomDTO? = roomService.getRoom(id)
-                            if (room != null) {
-                                call.respond(HttpStatusCode.OK, room)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "ROOM_NOT_FOUND",
-                                    "Room with id $id was not found"
-                                )
-                            )
-                        }
-                    }
 
                     delete {
                         val roomId = call.parameters["roomId"]?.toIntOrNull()
@@ -107,6 +90,36 @@ fun Route.roomsRouting() {
                                 HttpStatusCode.BadRequest, message = ApiError(
                                     "INVALID_ID",
                                     "Invalid user ID"
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        authenticate {
+
+            authorized(
+                rolesMap.getValue(ERole.DIRECTOR).toString(),
+                rolesMap.getValue(ERole.MANAGER).toString(),
+                rolesMap.getValue(ERole.USER).toString()
+            ) {
+
+                route("/{roomId}") {
+
+                    get {
+                        val id =
+                            call.parameters["roomId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                        try {
+                            val room: RoomDTO? = roomService.getRoom(id)
+                            if (room != null) {
+                                call.respond(HttpStatusCode.OK, room)
+                            }
+                        } catch (e: Exception) {
+                            call.respond(
+                                HttpStatusCode.NotFound, message = ApiError(
+                                    "ROOM_NOT_FOUND",
+                                    "Room with id $id was not found"
                                 )
                             )
                         }

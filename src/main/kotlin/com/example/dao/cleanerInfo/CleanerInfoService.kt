@@ -6,7 +6,7 @@ import com.example.models.CleanerInfoDTO
 interface CleanerInfoService {
     suspend fun addCleanerInfo(cleanerId: Int, hotelId: Int): CleanerInfo?
 
-    suspend fun getCleanerInfoById(id: Int): CleanerInfoDTO?
+    suspend fun getCleanerInfoByCleanerId(id: Int): CleanerInfoDTO?
 
     suspend fun getHotelCleanersById(hotelId: Int): List<CleanerInfoDTO>
 }
