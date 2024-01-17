@@ -1,4 +1,4 @@
-# itmo-kotlin
+# Hotel Booking
 
 **Technologies**: Kotlin, Ktor, Exposed, Postgresql
 
