@@ -6,17 +6,16 @@ import com.example.dao.managerInfo.managerInfoService
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import com.example.dao.user.userService
+import com.example.models.ApiError
 import com.example.models.ERole
 import com.example.models.rolesMap
-import com.example.utils.BcryptHasher
-import com.example.utils.JwtConfig
-import com.example.utils.Token
-import com.example.utils.authorized
+import com.example.utils.*
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.coroutines.delay
+import kotlin.reflect.full.createInstance
 
 interface IRegisterRequest {
     val name: String
@@ -24,10 +23,19 @@ interface IRegisterRequest {
     val login: String
     val password: String
 }
-data class RegisterRequest(override val name: String, override val surname: String, override val login: String, override val password: String): IRegisterRequest
+data class RegisterRequest(override var name: String, override var surname: String,
+                           override var login: String, override var password: String): IRegisterRequest {
+    constructor() : this("", "", "", "")
+}
+data class CleanerRegisterRequest(val hotelId: Int, override val name: String,
+                                  override val surname: String, override val login: String,
+                                  override val password: String) : IRegisterRequest {
+    constructor() : this(1, "", "", "", "")
+}
 
-data class CleanerRegisterRequest(val hotelId: Int, override val name: String, override val surname: String, override val login: String, override val password: String) : IRegisterRequest
-data class LoginRequest(val login: String, val password: String)
+data class LoginRequest(val login: String, val password: String) {
+    constructor(): this("", "")
+}
 
 fun Route.authRouting() {
 
@@ -35,14 +43,25 @@ fun Route.authRouting() {
 
         route("/client") {
             post {
-                val creds = call.receive<RegisterRequest>()
-                userService.addNewUser(
-                    creds.name,
-                    creds.surname,
-                    ERole.USER.databaseId,
-                    creds.login,
-                    BcryptHasher.hashPassword(creds.password)
-                ) ?: call.respond("new client registered")
+                var creds = RegisterRequest::class.createInstance()
+                try {
+                    creds = call.receive<RegisterRequest>()
+                } catch (e: Throwable) {
+                    call.respond(HttpStatusCode.UnprocessableEntity,
+                        "failed to convert request body to class RegisterRequest")
+                }
+                try {
+                    userService.addUser(
+                        creds.name,
+                        creds.surname,
+                        ERole.USER.databaseId,
+                        creds.login,
+                        BcryptHasher.hashPassword(creds.password)
+                    )
+                    ?: call.respond("new client registered")
+                } catch (e: ApiError) {
+                    call.respond(e.code, e.message)
+                }
             }
         }
 
@@ -52,57 +71,87 @@ fun Route.authRouting() {
 
                 route("/manager") {
                     post {
-                        val creds = call.receive<RegisterRequest>()
-                        val user = userService.addNewUser(
-                            creds.name,
-                            creds.surname,
-                            ERole.MANAGER.databaseId,
-                            creds.login,
-                            BcryptHasher.hashPassword(creds.password)
-                        )
-                        delay(0)
-                        if (user != null) {
-                            managerInfoService.addManagerInfo(user.id)
+                        var creds = RegisterRequest::class.createInstance()
+                        try {
+                            creds = call.receive<RegisterRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class RegisterRequest")
                         }
-                        call.respond("new manager registered, managerInfo created")
+                        try {
+                            val user = userService.addUser(
+                                creds.name,
+                                creds.surname,
+                                ERole.MANAGER.databaseId,
+                                creds.login,
+                                BcryptHasher.hashPassword(creds.password)
+                            )
+                            delay(0)
+                            if (user != null) {
+                                managerInfoService.addManagerInfo(user.id)
+                            }
+                            call.respond("new manager registered, managerInfo created")
+                        } catch (e: ApiError)  {
+                            call.respond(e.code, e.message)
+                        }
                     }
                 }
 
                 route("/director") {
                     post {
-                        val creds = call.receive<RegisterRequest>()
-                        val user = userService.addNewUser(
-                            creds.name,
-                            creds.surname,
-                            ERole.DIRECTOR.databaseId,
-                            creds.login,
-                            BcryptHasher.hashPassword(creds.password)
-                        )
-
-                        if (user != null) {
-                            directorInfoService.addDirectorInfo(user.id)
+                        var creds = RegisterRequest::class.createInstance()
+                        try {
+                            creds = call.receive<RegisterRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class RegisterRequest")
                         }
+                        try {
+                            val user = userService.addUser(
+                                creds.name,
+                                creds.surname,
+                                ERole.DIRECTOR.databaseId,
+                                creds.login,
+                                BcryptHasher.hashPassword(creds.password)
+                            )
+                            delay(0)
+                            if (user != null) {
+                                directorInfoService.addDirectorInfo(user.id)
+                            }
 
-                        call.respond("new director registered")
+                            call.respond("new director registered")
+                        } catch(e: ApiError) {
+                            call.respond(e.code, e.message)
+                        }
                     }
                 }
 
                 route("/cleaner") {
                     post {
-                        val creds = call.receive<CleanerRegisterRequest>()
-                        val user = userService.addNewUser(
-                            creds.name,
-                            creds.surname,
-                            ERole.CLEANER.databaseId,
-                            creds.login,
-                            BcryptHasher.hashPassword(creds.password)
-                        )
-
-                        if (user != null) {
-                            cleanerInfoService.addCleanerInfo(user.id, creds.hotelId)
+                        var creds = CleanerRegisterRequest::class.createInstance()
+                        try {
+                            creds = call.receive<CleanerRegisterRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class CleanerRegisterRequest")
                         }
+                        try {
+                            val user = userService.addUser(
+                                creds.name,
+                                creds.surname,
+                                ERole.CLEANER.databaseId,
+                                creds.login,
+                                BcryptHasher.hashPassword(creds.password)
+                            )
+                            delay(0)
+                            if (user != null) {
+                                cleanerInfoService.addCleanerInfo(user.id, creds.hotelId)
+                            }
 
-                        call.respond("new cleaner registered")
+                            call.respond("new cleaner registered")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
+                        }
                     }
                 }
             }
@@ -112,9 +161,21 @@ fun Route.authRouting() {
     route("/login") {
 
         post("") {
-            userService.findUserByCredentials(call.receive<LoginRequest>())?.let { token ->
-                call.respond(Token(JwtConfig.createJwtToken(token)))
-            } ?: call.respond(HttpStatusCode.Unauthorized)
+            var loginRequest = LoginRequest::class.createInstance()
+            try {
+                loginRequest = call.receive<LoginRequest>()
+            } catch (e: Throwable) {
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity,
+                    "failed to convert request body to class LoginRequest"
+                )
+            }
+            try {
+                userService.findUserByCredentials(loginRequest)?.let {
+                    token -> call.respond(Token(JwtConfig.createJwtToken(token))) }
+            } catch (e: ApiError) {
+                call.respond(e.code, e.message)
+            }
         }
     }
 }

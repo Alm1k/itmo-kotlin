@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS cleaner_infos (
     hotel_id integer NOT NULL,
 
     CONSTRAINT cleaner_id FOREIGN KEY (cleaner_id)
-    REFERENCES cleaner_infos (id) MATCH FULL
+    REFERENCES users (id) MATCH FULL
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
     CONSTRAINT hotel_id FOREIGN KEY (hotel_id)

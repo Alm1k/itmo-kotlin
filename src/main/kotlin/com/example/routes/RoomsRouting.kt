@@ -9,10 +9,15 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.reflect.full.createInstance
 
-data class RoomUpdateRequest(val managerId: Int, val price: Double)
+data class RoomUpdateRequest(val managerId: Int, val price: Double) {
+    constructor() : this(0, 0.00)
+}
 data class RoomRequest(val number: Int, val capacity: Int, val floor: Int, val price: Double,
-    val isVip: Boolean, val managerId: Int, val hotelId: Int)
+    val isVip: Boolean, val managerId: Int, val hotelId: Int) {
+    constructor() : this(0,0,0,0.00,false,0,0)
+}
 
 fun Route.roomsRouting() {
 
@@ -29,17 +34,29 @@ fun Route.roomsRouting() {
                 get {
                     call.respond(roomService.getAllRooms())
                 }
+
                 post {
-                    val room = call.receive<RoomRequest>()
-                    roomService.addRoom(
-                        room.number,
-                        room.capacity,
-                        room.floor,
-                        room.price,
-                        room.isVip,
-                        room.managerId,
-                        room.hotelId,
-                    ) ?: call.respond("new room created")
+                    var room = RoomRequest::class.createInstance()
+                    try {
+                        room = call.receive<RoomRequest>()
+                    } catch (e: Throwable) {
+                        call.respond(HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class RoomRequest")
+                    }
+                    try {
+                        roomService.addRoom(
+                            room.number,
+                            room.capacity,
+                            room.floor,
+                            room.price,
+                            room.isVip,
+                            room.managerId,
+                            room.hotelId,
+                        )
+                        call.respond("new room created")
+                    } catch (e: ApiError) {
+                        call.respond(e.code, e.message)
+                    }
                 }
 
                 route("/{roomId}") {
@@ -47,51 +64,29 @@ fun Route.roomsRouting() {
                     delete {
                         val roomId = call.parameters["roomId"]?.toIntOrNull()
 
-                        if (roomId != null) {
-                            val deleted = roomService.deleteRoom(roomId)
-                            if (deleted) {
-                                call.respond(HttpStatusCode.OK, "Room deleted")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "ROOM_NOT_FOUND",
-                                        "Room  with id $roomId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid room ID"
-                                )
-                            )
+                        try {
+                            roomService.deleteRoom(roomId)
+                            call.respond(HttpStatusCode.OK, "Room deleted")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
                     patch {
                         val roomId = call.parameters["roomId"]?.toIntOrNull()
 
-                        if (roomId != null) {
-                            val updateInfo = call.receive<RoomUpdateRequest>()
-                            val updated = roomService.updateRoom(roomId, updateInfo.managerId, updateInfo.price)
-                            if (updated > 0) {
-                                call.respond(HttpStatusCode.OK, "Room info updated")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "ROOM_NOT_FOUND",
-                                        "Room with id $roomId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid user ID"
-                                )
-                            )
+                        var updateInfo = RoomUpdateRequest::class.createInstance()
+                        try {
+                            updateInfo = call.receive<RoomUpdateRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class RoomUpdateRequest")
+                        }
+                        try {
+                            roomService.updateRoom(roomId, updateInfo.managerId, updateInfo.price)
+                            call.respond(HttpStatusCode.OK, "Room info updated")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }
@@ -108,20 +103,12 @@ fun Route.roomsRouting() {
                 route("/{roomId}") {
 
                     get {
-                        val id =
-                            call.parameters["roomId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                        val id = call.parameters["roomId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
                         try {
-                            val room: RoomDTO? = roomService.getRoom(id)
-                            if (room != null) {
-                                call.respond(HttpStatusCode.OK, room)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "ROOM_NOT_FOUND",
-                                    "Room with id $id was not found"
-                                )
-                            )
+                            val room = roomService.getRoom(id)
+                            call.respond(HttpStatusCode.OK, room)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }

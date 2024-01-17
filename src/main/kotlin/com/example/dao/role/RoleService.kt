@@ -6,5 +6,5 @@ import org.jetbrains.exposed.sql.ResultRow
 
 interface RoleService {
     suspend fun mapRoleFromResultRow(row: ResultRow): Role
-    suspend fun getRole(id: Int): RoleDTO?
+    suspend fun getRole(id: Int?): RoleDTO
 }

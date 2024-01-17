@@ -26,17 +26,10 @@ fun Route.managerInfoRouting() {
                     get {
                         val id = call.parameters["managerId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
                         try {
-                            val managerInfo: ManagerInfoDTO? = managerInfoService.getManagerInfoByManagerId(id)
-                            if (managerInfo != null) {
-                                call.respond(HttpStatusCode.OK, managerInfo)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "USER_NOT_FOUND",
-                                    "Manager with id $id was not found (error: $e)"
-                                )
-                            )
+                            val managerInfo: ManagerInfoDTO = managerInfoService.getManagerInfoByManagerId(id)
+                            call.respond(HttpStatusCode.OK, managerInfo)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }

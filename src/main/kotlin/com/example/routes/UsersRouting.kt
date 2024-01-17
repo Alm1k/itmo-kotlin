@@ -1,9 +1,10 @@
 package com.example.routes
 
+import com.example.dao.user.userService
+import com.example.models.ApiError
+import com.example.models.*
 import com.example.dao.hotelRating.hotelRatingService
 import com.example.dao.request.requestService
-import com.example.dao.user.userService
-import com.example.models.*
 import com.example.utils.authorized
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -11,8 +12,12 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.reflect.full.createInstance
 
-data class userUpdateRequest(val bDay: String, val email: String)
+data class UserUpdateRequest(val bDay: String, val email: String) {
+    constructor() : this("", "")
+}
+
 
 fun Route.usersRouting() {
 
@@ -32,86 +37,45 @@ fun Route.usersRouting() {
                 route("/{userId}") {
 
                     get {
-                        val id =
-                            call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                        val id = call.parameters["userId"]?.toIntOrNull()
                         try {
-                            val user: UserDTO? = userService.getUser(id)
-                            if (user != null) {
-                                call.respond(HttpStatusCode.OK, user)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "USER_NOT_FOUND",
-                                    "User  with id $id was not found"
-                                )
-                            )
+                            val user = userService.getUser(id)
+                            call.respond(HttpStatusCode.OK, user)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
                     delete {
                         val userId = call.parameters["userId"]?.toIntOrNull()
-
-                        if (userId != null) {
-                            val deleted = userService.deleteUser(userId)
-                            if (deleted) {
-                                call.respond(HttpStatusCode.OK, "User deleted")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "USER_NOT_FOUND",
-                                        "User  with id $userId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid user ID"
-                                )
-                            )
+                        try {
+                            userService.deleteUser(userId)
+                            call.respond(HttpStatusCode.OK, "user deleted")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
-
-                    route("/requests") {
-                        get {
-
-                            val id =
-                                call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
-                            try {
-                                call.respond(HttpStatusCode.OK, requestService.getAllRequestsByClientId(id))
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "USER_NOT_FOUND",
-                                        "User  with id $id was not found"
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    route("/ratings") {
-                        get {
-                            val id =
-                                call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
-
-                            try {
-                                val ratings: List<HotelRatingDTO>? = hotelRatingService.getUserRatings(id)
-                                if (ratings != null) {
-                                    call.respond(HttpStatusCode.OK, ratings)
-                                }
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "USER_NOT_FOUND",
-                                        "User  with id $id was not found"
-                                    )
-                                )
-                            }
-                        }
-                    }
+//
+//                route("/ratings") {
+//                    get {
+//                        val id =
+//                            call.parameters["userId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+//
+//                        try {
+//                            val ratings: List<HotelRatingDTO>? = hotelRatingService.getUserRatings(id)
+//                            if (ratings != null) {
+//                                call.respond(HttpStatusCode.OK, ratings)
+//                            }
+//                        } catch (e: Exception) {
+//                            call.respond(
+//                                HttpStatusCode.NotFound, message = ApiError(
+//                                    "USER_NOT_FOUND",
+//                                    "User  with id $id was not found"
+//                                )
+//                            )
+//                        }
+//                    }
+//                }
                 }
             }
         }
@@ -128,28 +92,18 @@ fun Route.usersRouting() {
 
                     patch {
                         val userId = call.parameters["userId"]?.toIntOrNull()
-
-                        if (userId != null) {
-                            val additionalUserInfo = call.receive<userUpdateRequest>()
-                            val updated =
-                                userService.updateUser(userId, additionalUserInfo.bDay, additionalUserInfo.email)
-                            if (updated > 0) {
-                                call.respond(HttpStatusCode.OK, "User info updated")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "USER_NOT_FOUND",
-                                        "User  with id $userId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid user ID"
-                                )
-                            )
+                        var additionalUserInfo = UserUpdateRequest::class.createInstance()
+                        try {
+                            additionalUserInfo = call.receive<UserUpdateRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class UserUpdateRequest")
+                        }
+                        try {
+                            userService.updateUser(userId, additionalUserInfo.bDay, additionalUserInfo.email)
+                            call.respond(HttpStatusCode.OK, "user info updated")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }
