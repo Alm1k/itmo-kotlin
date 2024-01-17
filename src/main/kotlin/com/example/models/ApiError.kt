@@ -1,9 +1,8 @@
 package com.example.models
 
-import kotlinx.serialization.Serializable
+import io.ktor.http.*
 
-@Serializable
 data class ApiError(
-    val code: String,
-    val message: String
-)
+    val code: HttpStatusCode,
+    override val message: String
+) : Throwable(message)
