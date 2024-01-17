@@ -1,12 +1,12 @@
 package com.example.routes
 
 import com.example.dao.cleaning.cleaningService
-import com.example.dao.hotel.hotelService
 import com.example.dao.request.requestService
 import com.example.dao.user.userService
 import com.example.dao.wsConnections.wsConnectionsService
 import com.example.models.ApiError
 import com.example.models.ERole
+import com.example.models.User
 import com.example.models.rolesMap
 import com.example.utils.authorized
 import io.ktor.http.*
@@ -44,25 +44,42 @@ fun Route.requestRouting() {
             send("Successfully connected.")
             val principal = call.principal<JWTPrincipal>()
             val login = principal!!.payload.getClaim("login").asString()
-            val user = userService.findUserByLogin(login)
+            val user: User
+            try {
+                user = userService.findUserByLogin(login)
+            } catch (e: ApiError) {
+                this.close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, e.message))
 
-            if (user == null) {
-                this.close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "User does not exist"))
-                error("Provided user does not exist")
+                return@webSocket
             }
 
-            wsConnectionsService.connect(user.id.value, this)
+            try {
+                wsConnectionsService.connect(user.id.value, this)
 
-            incoming.consumeEach { }
+                incoming.consumeEach { }
 
-            wsConnectionsService.disconnect(user.id.value)
+                wsConnectionsService.disconnect(user.id.value)
+            } catch (e: IllegalStateException) {
+                this.close(CloseReason(CloseReason.Codes.INTERNAL_ERROR, e.localizedMessage))
+            }
         }
     }
 
     route("/api/requests") {
 
         post {
-            val data = call.receive<RequestRequest>()
+            val data: RequestRequest
+
+            try {
+                data = call.receive<RequestRequest>()
+            } catch (e: Throwable) {
+                call.respond(
+                    HttpStatusCode.UnprocessableEntity,
+                    "failed to convert request body to class RequestRequest"
+                )
+
+                return@post
+            }
 
             try {
                 requestService.createRequest(
@@ -73,23 +90,14 @@ fun Route.requestRouting() {
                     data.additionalInfo
                 )
 
-                hotelService.getAllHotelManagers(data.hotelId).map {
-                    if (wsConnectionsService.checkConnectionExist(it.manager.id)) {
-                        wsConnectionsService.sendMessage(
-                            it.manager.id,
-                            "New request created for hotel = ${data.hotelId} and room = ${data.roomId}, reload requests list"
-                        )
-                    }
-                }
+                wsConnectionsService.sendMessageToAllManagersByHotel(
+                    data.hotelId,
+                    "New request created for hotel = ${data.hotelId} and room = ${data.roomId}, reload requests list"
+                )
 
                 call.respond(HttpStatusCode.OK, "Request successfully created")
-            } catch (e: Exception) {
-                call.respond(
-                    HttpStatusCode.NotFound, message = ApiError(
-                        "",
-                        "${e.message}"
-                    )
-                )
+            } catch (e: ApiError) {
+                call.respond(e.code, e.message)
             }
         }
 
@@ -101,13 +109,8 @@ fun Route.requestRouting() {
 
                 try {
                     call.respond(HttpStatusCode.OK, requestService.getRequestById(id))
-                } catch (e: Exception) {
-                    call.respond(
-                        HttpStatusCode.NotFound, message = ApiError(
-                            "",
-                            "${e.message}"
-                        )
-                    )
+                } catch (e: ApiError) {
+                    call.respond(e.code, e.message)
                 }
             }
 
@@ -115,7 +118,18 @@ fun Route.requestRouting() {
                 val id =
                     call.parameters["requestId"]?.toIntOrNull()
                         ?: throw IllegalArgumentException("Invalid ID")
-                val data = call.receive<RequestEditRequest>()
+                val data: RequestEditRequest
+
+                try {
+                    data = call.receive<RequestEditRequest>()
+                } catch (e: Throwable) {
+                    call.respond(
+                        HttpStatusCode.UnprocessableEntity,
+                        "failed to convert request body to class RequestEditRequest"
+                    )
+
+                    return@post
+                }
 
                 try {
                     requestService.updateRequest(
@@ -124,16 +138,16 @@ fun Route.requestRouting() {
                         data.additionalInfo
                     )
 
-                    // todo maybe add websocket message?
+                    val hotelId = requestService.getRequestById(id).hotelId
+
+                    wsConnectionsService.sendMessageToAllManagersByHotel(
+                        hotelId,
+                        "Request with id $id is updated, reload requests list"
+                    )
 
                     call.respond(HttpStatusCode.OK, "Request successfully updated")
-                } catch (e: Exception) {
-                    call.respond(
-                        HttpStatusCode.NotFound, message = ApiError(
-                            "",
-                            "${e.message}"
-                        )
-                    )
+                } catch (e: ApiError) {
+                    call.respond(e.code, e.message)
                 }
             }
 
@@ -149,7 +163,19 @@ fun Route.requestRouting() {
                             val id =
                                 call.parameters["requestId"]?.toIntOrNull()
                                     ?: throw IllegalArgumentException("Invalid ID")
-                            val data = call.receive<RequestEditStatusRequest>()
+                            val data: RequestEditStatusRequest
+
+                            try {
+                                data = call.receive<RequestEditStatusRequest>()
+                            } catch (e: Throwable) {
+                                call.respond(
+                                    HttpStatusCode.UnprocessableEntity,
+                                    "failed to convert request body to class RequestEditStatusRequest"
+                                )
+
+                                return@post
+                            }
+
 
                             try {
                                 requestService.updateRequestStatus(
@@ -157,16 +183,16 @@ fun Route.requestRouting() {
                                     data.status
                                 )
 
-                                // todo maybe add websocket message?
+                                val hotelId = requestService.getRequestById(id).hotelId
+
+                                wsConnectionsService.sendMessageToAllManagersByHotel(
+                                    hotelId,
+                                    "Request status with id $id is updated, reload requests list"
+                                )
 
                                 call.respond(HttpStatusCode.OK, "Request successfully updated")
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "${e.message}"
-                                    )
-                                )
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
                             }
                         }
                     }
@@ -179,7 +205,18 @@ fun Route.requestRouting() {
             authenticate {
 
                 post {
-                    val data = call.receive<CleaningRequest>()
+                    val data: CleaningRequest
+
+                    try {
+                        data = call.receive<CleaningRequest>()
+                    } catch (e: Throwable) {
+                        call.respond(
+                            HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class CleaningRequest"
+                        )
+
+                        return@post
+                    }
 
                     try {
                         cleaningService.createCleaning(data.cleanerId, data.roomId, data.hotelId)
@@ -192,13 +229,8 @@ fun Route.requestRouting() {
                         }
 
                         call.respond(HttpStatusCode.OK, "Cleaning successfully created")
-                    } catch (e: Exception) {
-                        call.respond(
-                            HttpStatusCode.NotFound, message = ApiError(
-                                "",
-                                "${e.message}"
-                            )
-                        )
+                    } catch (e: ApiError) {
+                        call.respond(e.code, e.message)
                     }
                 }
             }
@@ -219,18 +251,9 @@ fun Route.requestRouting() {
                             try {
                                 val cleaning = cleaningService.getCleaningsById(id)
 
-                                if (cleaning != null) {
-                                    call.respond(HttpStatusCode.OK, cleaning)
-                                } else {
-                                    error("Cleaning with $id not found")
-                                }
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "${e.message}"
-                                    )
-                                )
+                                call.respond(HttpStatusCode.OK, cleaning)
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
                             }
                         }
                     }
@@ -241,18 +264,21 @@ fun Route.requestRouting() {
                                 call.parameters["cleaningId"]?.toIntOrNull()
                                     ?: throw IllegalArgumentException("Invalid ID")
 
-                            // todo maybe add websocket message?
-
                             try {
                                 cleaningService.completeCleaning(id)
-                                call.respond(HttpStatusCode.OK, "Cleaning $id is completed")
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "${e.message}"
+
+                                val cleanerId = cleaningService.getCleaningsById(id).cleanerId
+
+                                if (wsConnectionsService.checkConnectionExist(cleanerId)) {
+                                    wsConnectionsService.sendMessage(
+                                        cleanerId,
+                                        "Cleaning $id is completed, reload cleanings list"
                                     )
-                                )
+                                }
+
+                                call.respond(HttpStatusCode.OK, "Cleaning $id is completed")
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
                             }
                         }
                     }

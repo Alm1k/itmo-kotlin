@@ -1,12 +1,14 @@
 package com.example.dao.request
 
 import com.example.dao.DatabaseFactory
+import com.example.dao.hotel.hotelService
+import com.example.dao.room.roomService
+import com.example.dao.user.userService
 import com.example.models.*
+import com.example.utils.defaultErrorHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.update
+import io.ktor.http.*
+import org.jetbrains.exposed.sql.*
 
 class RequestServiceImpl : RequestService {
 
@@ -15,7 +17,10 @@ class RequestServiceImpl : RequestService {
     private fun resultRowToRequest(row: ResultRow): Request {
         logger.debug { "$row" }
 
-        return Request.findById(row[Requests.id]) ?: error("Such request doesn't exist")
+        return Request.findById(row[Requests.id]) ?: throw ApiError(
+            HttpStatusCode.NotFound,
+            "Such request doesn't exist"
+        )
     }
 
     override suspend fun createRequest(
@@ -24,10 +29,18 @@ class RequestServiceImpl : RequestService {
         roomId: Int,
         type: String,
         additionalInfo: String
-    ): Request? = DatabaseFactory.dbQuery {
+    ): Request = DatabaseFactory.dbQuery {
         logger.debug { "create request with data fromClientId=$fromClientId, hotelId=$hotelId, roomId=$roomId, type=$type, additionalInfo=$additionalInfo" }
 
-        val requestType = RequestType.find { RequestTypes.type eq type }.singleOrNull() ?: error("Incorrect type")
+        val requestType = RequestType.find { RequestTypes.type eq type }.singleOrNull() ?: throw ApiError(
+            HttpStatusCode.BadRequest,
+            "Incorrect type"
+        )
+
+        userService.getUser(fromClientId)
+        hotelService.getHotel(hotelId)
+        roomService.getRoom(roomId)
+
         val insertStatement = Requests.insert {
             it[from_client_id] = fromClientId
             it[hotel_id] = hotelId
@@ -37,10 +50,11 @@ class RequestServiceImpl : RequestService {
             it[additional_info] = additionalInfo
         }
         try {
-            insertStatement.resultedValues?.singleOrNull()?.let { resultRowToRequest(it) }
+            insertStatement.resultedValues?.singleOrNull()?.let { resultRowToRequest(it) } ?: throw ApiError(
+                HttpStatusCode.InternalServerError, "Internal Server Error"
+            )
         } catch (e: Throwable) {
-            logger.debug { e.localizedMessage }
-            null
+            defaultErrorHandler(e, logger)
         }
     }
 
@@ -48,10 +62,12 @@ class RequestServiceImpl : RequestService {
         logger.debug { "get request by id = $requestId" }
 
         try {
-            Request.findById(requestId)?.toRequest() ?: error("Request does not exist")
+            Request.findById(requestId)?.toRequest() ?: throw ApiError(
+                HttpStatusCode.NotFound,
+                "Request does not exist"
+            )
         } catch (e: Throwable) {
-            logger.debug { "${e.message}" }
-            error("${e.message}")
+            defaultErrorHandler(e, logger)
         }
     }
 
@@ -61,8 +77,7 @@ class RequestServiceImpl : RequestService {
         try {
             Requests.select { Requests.hotel_id eq hotelId }.map { resultRowToRequest(it).toRequest() }
         } catch (e: Throwable) {
-            logger.debug { "${e.message}" }
-            error("${e.message}")
+            defaultErrorHandler(e, logger)
         }
     }
 
@@ -72,24 +87,21 @@ class RequestServiceImpl : RequestService {
         try {
             Requests.select { Requests.from_client_id eq clientId }.map { resultRowToRequest(it).toRequest() }
         } catch (e: Throwable) {
-            logger.debug { "${e.message}" }
-            error("${e.message}")
+            defaultErrorHandler(e, logger)
         }
     }
 
     override suspend fun updateRequestStatus(requestId: Int, status: String): Int = DatabaseFactory.dbQuery {
         logger.debug { "update request status $requestId with status $status" }
 
-        val requestStatus =
-            RequestStatus.find { RequestStatuses.status eq status }.singleOrNull() ?: error("Incorrect status")
+        val requestStatus = this.getRequestById(requestId)
 
         try {
             Requests.update({ Requests.id eq requestId }) {
-                it[request_status_id] = requestStatus.id.value
+                it[request_status_id] = requestStatus.id
             }
         } catch (e: Throwable) {
-            logger.debug { "Request does not exists" }
-            error("Request does not exists")
+            defaultErrorHandler(e, logger)
         }
     }
 
@@ -97,12 +109,14 @@ class RequestServiceImpl : RequestService {
         DatabaseFactory.dbQuery {
             logger.debug { "update request $requestId with type $type and additionalInfo $additionalInfo" }
 
-            val requestType = RequestType.find { RequestTypes.type eq type }.singleOrNull() ?: error("Incorrect type")
+            val requestType = RequestType.find { RequestTypes.type eq type }.singleOrNull() ?: throw ApiError(
+                HttpStatusCode.BadRequest,
+                "Incorrect type"
+            )
+            val request = requestService.getRequestById(requestId)
 
-            val request = Request.findById(requestId) ?: error("Incorrect requestId")
-
-            if (request.statusId.id.value != ERequestStatus.PENDING.databaseId) {
-                error("Change request data is possible only in pending status")
+            if (request.statusId != ERequestStatus.PENDING.databaseId) {
+                throw ApiError(HttpStatusCode.Forbidden, "Change request data is possible only in pending status")
             }
 
             try {
@@ -111,8 +125,7 @@ class RequestServiceImpl : RequestService {
                     it[additional_info] = additionalInfo
                 }
             } catch (e: Throwable) {
-                logger.debug { "Request does not exists" }
-                error("Request does not exists")
+                defaultErrorHandler(e, logger)
             }
         }
 }

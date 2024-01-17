@@ -1,5 +1,6 @@
 package com.example.dao.wsConnections
 
+import com.example.dao.hotel.hotelService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
@@ -41,6 +42,17 @@ class WSConnectionServiceImpl : WSConnectionsService {
 
     override suspend fun checkConnectionExist(userId: Int): Boolean {
         return connections.containsKey(userId)
+    }
+
+    override suspend fun sendMessageToAllManagersByHotel(hotelId: Int, message: String) {
+        hotelService.getAllHotelManagers(hotelId).map {
+            if (this.checkConnectionExist(it.manager.id)) {
+                this.sendMessage(
+                    it.manager.id,
+                    message
+                )
+            }
+        }
     }
 
 }

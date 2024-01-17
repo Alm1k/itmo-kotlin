@@ -11,7 +11,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-data class CleanerInfo(val cleanerId: Int, val hotelId: Int)
+data class CleanerInfoRequest(val cleanerId: Int, val hotelId: Int)
+
 fun Route.cleanerInfoRouting() {
 
     route("/api/cleanerInfo") {
@@ -24,20 +25,22 @@ fun Route.cleanerInfoRouting() {
             ) {
 
                 post {
-                    val data = call.receive<CleanerInfo>()
+                    val data: CleanerInfoRequest
+
+                    try {
+                        data = call.receive<CleanerInfoRequest>()
+                    } catch (e: Throwable) {
+                        call.respond(HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class CleanerInfoRequest")
+
+                        return@post
+                    }
 
                     try {
                         cleanerInfoService.addCleanerInfo(data.cleanerId, data.hotelId)
                         call.respond("Cleaner with id ${data.cleanerId} was added to hotel ${data.hotelId}")
-                    } catch (e: Exception) {
-
-                        // todo change it, I think we need to do return ApiError from service
-                        call.respond(
-                            HttpStatusCode.BadRequest, message = ApiError(
-                                "DIRECTOR_ALREADY_EXISTS",
-                                "$e: this director already exists"
-                            )
-                        )
+                    } catch (e: ApiError) {
+                        call.respond(e.code, e.message)
                     }
                 }
             }
@@ -58,18 +61,11 @@ fun Route.cleanerInfoRouting() {
                                 ?: throw IllegalArgumentException("Invalid ID")
 
                         try {
-                            val cleanerInfo: CleanerInfoDTO? = cleanerInfoService.getCleanerInfoByCleanerId(id)
+                            val cleanerInfo: CleanerInfoDTO = cleanerInfoService.getCleanerInfoByCleanerId(id)
 
-                            if (cleanerInfo != null) {
-                                call.respond(HttpStatusCode.OK, cleanerInfo)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "",
-                                    "$e: Cleaner with id $id was not found"
-                                )
-                            )
+                            call.respond(HttpStatusCode.OK, cleanerInfo)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }
@@ -83,13 +79,8 @@ fun Route.cleanerInfoRouting() {
                             val cleaning: List<CleaningDTO> = cleaningService.getCleaningsByCleaner(id)
 
                             call.respond(HttpStatusCode.OK, cleaning)
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "",
-                                    "$e"
-                                )
-                            )
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }

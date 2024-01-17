@@ -10,7 +10,7 @@ interface RequestService {
         roomId: Int,
         type: String,
         additionalInfo: String
-    ): Request?
+    ): Request
 
     suspend fun getRequestById(requestId: Int): RequestDTO
 

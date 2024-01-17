@@ -14,8 +14,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-data class SetHotelRequest(val name: String, val stageCount: Int, val directorId: Int)
-data class UpdateDirectorRequest(val directorId: Int)
+data class SetHotelRequest(val name: String, val stageCount: Int, val userId: Int)
+data class UpdateDirectorRequest(val userId: Int)
 
 data class RatingRequest(val userId: Int, val rate: Int)
 
@@ -35,20 +35,28 @@ fun Route.hotelRouting() {
                 }
 
                 post {
-                    val creds = call.receive<SetHotelRequest>()
+                    val data: SetHotelRequest
+
+                    try {
+                        data = call.receive<SetHotelRequest>()
+                    } catch (e: Throwable) {
+                        call.respond(
+                            HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class SetHotelRequest"
+                        )
+
+                        return@post
+                    }
+
                     try {
                         hotelService.addHotel(
-                            creds.name,
-                            creds.stageCount,
-                            creds.directorId,
-                        ) ?: call.respond("Hotel for director with id ${creds.directorId} created")
-                    } catch (e: Exception) {
-                        call.respond(
-                            HttpStatusCode.BadRequest, message = ApiError(
-                                "HOTEL_ALREADY_EXISTS",
-                                "$e: Hotel already exists"
-                            )
+                            data.name,
+                            data.stageCount,
+                            data.userId,
                         )
+                        call.respond("Hotel for director with id ${data.userId} created")
+                    } catch (e: ApiError) {
+                        call.respond(e.code, e.message)
                     }
                 }
 
@@ -59,18 +67,25 @@ fun Route.hotelRouting() {
                             call.parameters["hotelId"]?.toIntOrNull() ?: throw java.lang.IllegalArgumentException(
                                 "Invalid Hotel Id"
                             )
-                        val directorId = call.receive<UpdateDirectorRequest>().directorId
+                        val userId: Int
 
                         try {
-                            hotelService.changeDirector(hotelId, directorId)
-                                ?: call.respond("Director for hotel $hotelId changed on $directorId")
-                        } catch (e: Exception) {
+                            userId = call.receive<UpdateDirectorRequest>().userId
+                        } catch (e: Throwable) {
                             call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "NOT_FOUND",
-                                    "${e.message}"
-                                )
+                                HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class UpdateDirectorRequest"
                             )
+
+                            return@post
+                        }
+
+                        try {
+                            hotelService.changeDirector(hotelId, userId)
+
+                            call.respond("Director for hotel $hotelId changed on $userId")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
@@ -82,13 +97,8 @@ fun Route.hotelRouting() {
 
                             try {
                                 call.respond(HttpStatusCode.OK, requestService.getAllRequestsByHotelId(id))
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "",
-                                        "${e.message}"
-                                    )
-                                )
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
                             }
                         }
                     }
@@ -98,7 +108,11 @@ fun Route.hotelRouting() {
                             val hotelId = call.parameters["hotelId"]?.toIntOrNull()
                                 ?: throw java.lang.IllegalArgumentException("Invalid Hotel Id")
 
-                            call.respond(HttpStatusCode.OK, cleanerInfoService.getHotelCleanersById(hotelId))
+                            try {
+                                call.respond(HttpStatusCode.OK, cleanerInfoService.getHotelCleanersById(hotelId))
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
+                            }
                         }
                     }
 
@@ -107,7 +121,11 @@ fun Route.hotelRouting() {
                             val hotelId = call.parameters["hotelId"]?.toIntOrNull()
                                 ?: throw java.lang.IllegalArgumentException("Invalid Hotel Id")
 
-                            call.respond(HttpStatusCode.OK, cleaningService.getCleaningsByHotel(hotelId))
+                            try {
+                                call.respond(HttpStatusCode.OK, cleaningService.getCleaningsByHotel(hotelId))
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
+                            }
                         }
                     }
                 }
@@ -127,18 +145,11 @@ fun Route.hotelRouting() {
                             call.parameters["hotelId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
 
                         try {
-                            val hotel: HotelDTO? = hotelService.getHotel(id)
+                            val hotel: HotelDTO = hotelService.getHotel(id)
 
-                            if (hotel != null) {
-                                call.respond(HttpStatusCode.OK, hotel)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "HOTEL_NOT_FOUND",
-                                    "$e: Hotel with id $id was not found"
-                                )
-                            )
+                            call.respond(HttpStatusCode.OK, hotel)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
@@ -146,7 +157,18 @@ fun Route.hotelRouting() {
                         post {
                             val hotelId = call.parameters["hotelId"]?.toIntOrNull()
                                 ?: throw java.lang.IllegalArgumentException("Invalid Hotel Id")
-                            val data = call.receive<RatingRequest>()
+                            val data: RatingRequest
+
+                            try {
+                                data = call.receive<RatingRequest>()
+                            } catch (e: Throwable) {
+                                call.respond(
+                                    HttpStatusCode.UnprocessableEntity,
+                                    "failed to convert request body to class RatingRequest"
+                                )
+
+                                return@post
+                            }
 
                             try {
                                 hotelRatingService.addHotelRating(
@@ -158,13 +180,8 @@ fun Route.hotelRouting() {
                                     HttpStatusCode.OK,
                                     "Rating for hotel ${data.userId} from user ${data.userId} created"
                                 )
-                            } catch (e: Exception) {
-                                call.respond(
-                                    HttpStatusCode.BadRequest, message = ApiError(
-                                        "",
-                                        "$e: Rating already exists"
-                                    )
-                                )
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
                             }
                         }
                     }

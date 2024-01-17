@@ -1,8 +1,15 @@
 package com.example.dao.cleaning
 
 import com.example.dao.DatabaseFactory
-import com.example.models.*
+import com.example.dao.cleanerInfo.cleanerInfoService
+import com.example.dao.hotel.hotelService
+import com.example.models.ApiError
+import com.example.models.Cleaning
+import com.example.models.CleaningDTO
+import com.example.models.Cleanings
+import com.example.utils.defaultErrorHandler
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.*
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.select
@@ -16,18 +23,25 @@ class CleaningServiceImpl : CleaningService {
     private fun resultRowToCleaning(row: ResultRow): Cleaning {
         logger.debug { "$row" }
 
-        return Cleaning.findById(row[Cleanings.id]) ?: error("Such cleaning doesn't exist")
+        return Cleaning.findById(row[Cleanings.id]) ?: throw ApiError(
+            HttpStatusCode.NotFound,
+            "Such cleaning doesn't exist"
+        )
     }
 
-    override suspend fun createCleaning(cleanerId: Int, roomId: Int, hotelId: Int): Cleaning? =
+    override suspend fun createCleaning(cleanerId: Int, roomId: Int, hotelId: Int): Cleaning =
         DatabaseFactory.dbQuery {
             logger.debug { "Create cleaning for user $cleanerId, hotel $hotelId and room $roomId" }
 
-            val cleanerInfo = CleanerInfo.find { CleanerInfos.cleaner_id eq cleanerId }.singleOrNull()
-                ?: error("User $cleanerId doesn't have cleanerInfo or doesn't exists")
+            val cleanerInfo = cleanerInfoService.getCleanerInfoByCleanerId(cleanerId)
+            val hotel = hotelService.getHotel(hotelId)
 
-            if (cleanerInfo.toCleanerInfo().hotelId != hotelId) {
-                error("Cleaner $cleanerId is not related to hotel $hotelId")
+            if (cleanerInfo.hotelId != hotelId) {
+                throw ApiError(HttpStatusCode.BadRequest, "Cleaner $cleanerId is not related to hotel $hotelId")
+            }
+
+            if (!hotel.rooms.any { it.id == roomId }) {
+                throw ApiError(HttpStatusCode.BadRequest, "Room $roomId is not related to hotel $hotelId")
             }
 
             val insertStatement = Cleanings.insert {
@@ -39,45 +53,59 @@ class CleaningServiceImpl : CleaningService {
             }
 
             try {
-                insertStatement.resultedValues?.singleOrNull()?.let { resultRowToCleaning(it) }
+                insertStatement.resultedValues?.singleOrNull()?.let { resultRowToCleaning(it) } ?: throw ApiError(
+                    HttpStatusCode.InternalServerError, "Internal Server Error"
+                )
             } catch (e: Throwable) {
-                logger.debug { "Cleaning for this room already exists" }
-                null
+                defaultErrorHandler(e, logger)
             }
         }
 
     override suspend fun getCleaningsByCleaner(cleanerId: Int): List<CleaningDTO> = DatabaseFactory.dbQuery {
         logger.debug { "get cleaning by cleanerId: $cleanerId" }
 
-        Cleanings.select { Cleanings.cleaner_id eq cleanerId }
-            .map { resultRowToCleaning(it).toCleaning() }
+        try {
+            Cleanings.select { Cleanings.cleaner_id eq cleanerId }
+                .map { resultRowToCleaning(it).toCleaning() }
+        } catch (e: Throwable) {
+            defaultErrorHandler(e, logger)
+        }
     }
 
     override suspend fun getCleaningsByHotel(hotelId: Int): List<CleaningDTO> = DatabaseFactory.dbQuery {
         logger.debug { "get cleaning by hotelId: $hotelId" }
 
-        Cleanings.select { Cleanings.hotel_id eq hotelId }
-            .map { resultRowToCleaning(it).toCleaning() }
+        try {
+            Cleanings.select { Cleanings.hotel_id eq hotelId }
+                .map { resultRowToCleaning(it).toCleaning() }
+        } catch (e: Throwable) {
+            defaultErrorHandler(e, logger)
+        }
     }
 
-    override suspend fun getCleaningsById(cleaningId: Int): CleaningDTO? = DatabaseFactory.dbQuery {
+    override suspend fun getCleaningsById(cleaningId: Int): CleaningDTO = DatabaseFactory.dbQuery {
         logger.debug { "get cleaning by id: $cleaningId" }
 
-        Cleanings.select { Cleanings.id eq cleaningId }
-            .map { resultRowToCleaning(it).toCleaning() }
-            .singleOrNull()
+        try {
+            Cleanings.select { Cleanings.id eq cleaningId }
+                .map { resultRowToCleaning(it).toCleaning() }
+                .singleOrNull() ?: throw ApiError(HttpStatusCode.NotFound, "Cleaning does not found")
+        } catch (e: Throwable) {
+            defaultErrorHandler(e, logger)
+        }
     }
 
     override suspend fun completeCleaning(cleaningId: Int): Int = DatabaseFactory.dbQuery {
         logger.debug { "complete cleaning for cleaning $cleaningId" }
+
+        this.getCleaningsById(cleaningId)
 
         try {
             Cleanings.update({ Cleanings.id eq cleaningId }) {
                 it[is_done] = true
             }
         } catch (e: Throwable) {
-            logger.debug { "cleaning does not exists" }
-            error("Cleaning does not exists")
+            defaultErrorHandler(e, logger)
         }
     }
 }
