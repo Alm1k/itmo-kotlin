@@ -3,7 +3,6 @@ package com.example.routes
 import com.example.dao.roomBooking.roomBookingService
 import com.example.models.ApiError
 import com.example.models.ERole
-import com.example.models.RoomBookingsDTO
 import com.example.models.rolesMap
 import com.example.utils.authorized
 import io.ktor.http.*
@@ -12,9 +11,15 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.reflect.full.createInstance
 
-data class RoomBookingUpdateRequest(val id: Int, val fromDate: String, val toDate: String)
-data class RoomBookingRequest(val fromDate: String, val toDate: String, val roomId: Int, val userId: Int)
+data class RoomBookingUpdateRequest(val id: Int, val fromDate: String, val toDate: String) {
+    constructor(): this(0, "", "")
+}
+data class RoomBookingRequest(val fromDate: String, val toDate: String,
+                              val roomId: Int, val userId: Int) {
+    constructor(): this( "", "", 0, 0)
+}
 fun Route.roomBookingsRouting() {
 
     route("/api/room-bookings") {
@@ -42,88 +47,68 @@ fun Route.roomBookingsRouting() {
             ) {
 
                 post {
-                    val roomBooking = call.receive<RoomBookingRequest>()
-                    roomBookingService.addRoomBooking(
-                        roomBooking.fromDate,
-                        roomBooking.toDate,
-                        roomBooking.roomId,
-                        roomBooking.userId
-                    ) ?: call.respond("new roomBooking created")
+                    var roomBooking = RoomBookingRequest::class.createInstance()
+                    try {
+                        roomBooking = call.receive<RoomBookingRequest>()
+                    } catch (e: Throwable) {
+                        call.respond(HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class RoomBookingRequest")
+                    }
+                    try {
+                        roomBookingService.addRoomBooking(
+                            roomBooking.fromDate,
+                            roomBooking.toDate,
+                            roomBooking.roomId,
+                            roomBooking.userId
+                        )
+                        call.respond("new roomBooking created")
+                    } catch(e: ApiError) {
+                        call.respond(e.code, e.message)
+                    }
                 }
 
                 route("/{roomBookingId}") {
 
                     get {
-                        val id =
-                            call.parameters["roomBookingId"]?.toIntOrNull()
-                                ?: throw IllegalArgumentException("Invalid ID")
+                        val id = call.parameters["roomBookingId"]?.toIntOrNull()
                         try {
-                            val roomBooking: RoomBookingsDTO? = roomBookingService.getRoomBooking(id)
-                            if (roomBooking != null) {
-                                call.respond(HttpStatusCode.OK, roomBooking)
-                            }
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "ROOM_BOOKING_NOT_FOUND",
-                                    "RoomBooking with id $id was not found"
-                                )
-                            )
+                            val roomBooking = roomBookingService.getRoomBooking(id)
+                            call.respond(HttpStatusCode.OK, roomBooking)
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
                     delete {
                         val roomBookingId = call.parameters["roomBookingId"]?.toIntOrNull()
 
-                        if (roomBookingId != null) {
-                            val deleted = roomBookingService.deleteRoomBooking(roomBookingId)
-                            if (deleted) {
-                                call.respond(HttpStatusCode.OK, "RoomBooking deleted")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "ROOM_BOOKING_NOT_FOUND",
-                                        "RoomBooking with id $roomBookingId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid room ID"
-                                )
-                            )
+                        try {
+                            roomBookingService.deleteRoomBooking(roomBookingId)
+                            call.respond(HttpStatusCode.OK, "RoomBooking deleted")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
 
                     patch {
                         val roomBookingId = call.parameters["roomBookingId"]?.toIntOrNull()
 
-                        if (roomBookingId != null) {
-                            val updateInfo = call.receive<RoomBookingUpdateRequest>()
-                            val updated = roomBookingService.updateRoomBooking(
+                        var updateInfo = RoomBookingUpdateRequest::class.createInstance()
+                        try {
+                            updateInfo = call.receive<RoomBookingUpdateRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class RoomBookingUpdateRequest")
+                        }
+                        try {
+                            roomBookingService.updateRoomBooking(
                                 roomBookingId,
                                 updateInfo.fromDate,
                                 updateInfo.toDate
                             )
-                            if (updated > 0) {
-                                call.respond(HttpStatusCode.OK, "RoomBooking info updated")
-                            } else {
-                                call.respond(
-                                    HttpStatusCode.NotFound, message = ApiError(
-                                        "ROOM_BOOKING_NOT_FOUND",
-                                        "RoomBooking with id $roomBookingId was not found"
-                                    )
-                                )
-                            }
-                        } else {
-                            call.respond(
-                                HttpStatusCode.BadRequest, message = ApiError(
-                                    "INVALID_ID",
-                                    "Invalid user ID"
-                                )
-                            )
+                            call.respond(HttpStatusCode.OK, "roomBooking updated")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }
@@ -131,20 +116,12 @@ fun Route.roomBookingsRouting() {
                 route("/client/{clientId}") {
 
                     get {
-                        val id =
-                            call.parameters["clientId"]?.toIntOrNull()
-                                ?: throw IllegalArgumentException("Invalid ID")
+                        val id = call.parameters["clientId"]?.toIntOrNull()
                         try {
-                            val roomBookings: List<RoomBookingsDTO> =
-                                roomBookingService.getAllRoomBookingsByUserId(id)
+                            val roomBookings = roomBookingService.getAllRoomBookingsByUserId(id)
                             call.respond(HttpStatusCode.OK, roomBookings)
-                        } catch (e: Exception) {
-                            call.respond(
-                                HttpStatusCode.NotFound, message = ApiError(
-                                    "CLIENT_ROOM_BOOKINGS_NOT_FOUND",
-                                    "RoomBookings for client with id $id were not found"
-                                )
-                            )
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
                         }
                     }
                 }
