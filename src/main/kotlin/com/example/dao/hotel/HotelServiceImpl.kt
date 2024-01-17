@@ -15,6 +15,7 @@ class HotelServiceImpl : HotelService {
 
         return Hotel.findById(row[Hotels.id]) ?: error("Such hotel doesn't exist")
     }
+
     override suspend fun addHotel(
         name: String,
         stageCount: Int,
@@ -27,7 +28,7 @@ class HotelServiceImpl : HotelService {
         val insertStatement = Hotels.insert {
             it[Hotels.name] = name
             it[Hotels.stageCount] = stageCount
-            it[Hotels.director_info_id] = directorInfo!!.id
+            it[director_info_id] = directorInfo!!.id
         }
         try {
             insertStatement.resultedValues?.singleOrNull()?.let { resultRowToHotel(it) }
@@ -58,16 +59,16 @@ class HotelServiceImpl : HotelService {
                 .map { resultRowToHotel(it).toHotel() }
                 .singleOrNull()
         } catch (e: Throwable) {
-        logger.debug { "hotel does not exists ${e.message} ${e.cause}" }
-        null
-    }
+            logger.debug { "hotel does not exists ${e.message} ${e.cause}" }
+            null
+        }
     }
 
-    override suspend fun getAllHotels(): List<HotelDTO>  = DatabaseFactory.dbQuery {
+    override suspend fun getAllHotels(): List<HotelDTO> = DatabaseFactory.dbQuery {
         logger.debug { "get all hotels" }
 
         try {
-            Hotels.selectAll().map{ resultRowToHotel(it).toHotel() }
+            Hotels.selectAll().map { resultRowToHotel(it).toHotel() }
         } catch (e: Throwable) {
             logger.debug { "${e.message}" }
             error("${e.message}")
@@ -85,6 +86,18 @@ class HotelServiceImpl : HotelService {
         } catch (e: Throwable) {
             logger.debug { "hotel does not exists" }
             error("Hotel does not exists")
+        }
+    }
+
+    override suspend fun getAllHotelManagers(hotelId: Int): List<ManagerInfoDTO> = DatabaseFactory.dbQuery {
+        logger.debug { "get all hotel $hotelId managers" }
+
+        try {
+            Room.find { Rooms.hotel_id eq hotelId }.distinctBy { it.managerInfo.manager.id.value }
+                .map { it.managerInfo.toManagerInfo() }
+        } catch (e: Throwable) {
+            logger.debug { "${e.message}" }
+            error("${e.message}")
         }
     }
 }

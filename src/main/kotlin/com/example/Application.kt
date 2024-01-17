@@ -24,6 +24,7 @@ fun Application.module() {
     }
     install(Resources)
     configureTemplating()
+    configureSockets()
     configureSerialization()
     configureSecurity()
     //configureDatabases()

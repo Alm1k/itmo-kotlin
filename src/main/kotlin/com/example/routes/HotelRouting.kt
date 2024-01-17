@@ -4,6 +4,7 @@ import com.example.dao.cleanerInfo.cleanerInfoService
 import com.example.dao.cleaning.cleaningService
 import com.example.dao.hotel.hotelService
 import com.example.dao.hotelRating.hotelRatingService
+import com.example.dao.request.requestService
 import com.example.models.*
 import com.example.utils.authorized
 import io.ktor.http.*
@@ -17,6 +18,7 @@ data class SetHotelRequest(val name: String, val stageCount: Int, val directorId
 data class UpdateDirectorRequest(val directorId: Int)
 
 data class RatingRequest(val userId: Int, val rate: Int)
+
 fun Route.hotelRouting() {
 
     route("/api/hotels") {
@@ -50,7 +52,7 @@ fun Route.hotelRouting() {
                     }
                 }
 
-                route("/{hotelId") {
+                route("/{hotelId}") {
 
                     post {
                         val hotelId =
@@ -69,6 +71,25 @@ fun Route.hotelRouting() {
                                     "${e.message}"
                                 )
                             )
+                        }
+                    }
+
+                    route("/requests") {
+                        get {
+                            val id =
+                                call.parameters["hotelId"]?.toIntOrNull()
+                                    ?: throw IllegalArgumentException("Invalid ID")
+
+                            try {
+                                call.respond(HttpStatusCode.OK, requestService.getAllRequestsByHotelId(id))
+                            } catch (e: Exception) {
+                                call.respond(
+                                    HttpStatusCode.NotFound, message = ApiError(
+                                        "",
+                                        "${e.message}"
+                                    )
+                                )
+                            }
                         }
                     }
 
