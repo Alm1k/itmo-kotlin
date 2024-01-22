@@ -79,6 +79,14 @@ class UserServiceImpl : UserService {
                 ?: throw ApiError(HttpStatusCode.NotFound, "user with login $login not found")
     }
 
+    override suspend fun getUserDTOByLogin(login: String): UserDTO = dbQuery {
+        logger.debug { "get userDTO by login: $login" }
+        Users.select { Users.login eq login }
+            .map { mapUserFromResultRow(it) }
+            .singleOrNull()?.toUser()
+            ?: throw ApiError(HttpStatusCode.NotFound, "user with login $login not found")
+    }
+
     private suspend fun doesLoginExist(login: String): Boolean = dbQuery {
         logger.debug { "get user by login: $login" }
         val user = Users.select { Users.login eq login }

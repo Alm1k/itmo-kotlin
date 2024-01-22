@@ -187,9 +187,9 @@ fun Route.authRouting() {
                 val login = principal!!.payload.getClaim("login").asString()
 
                 try {
-                    val user = userService.findUserByLogin(login)
+                    val user = userService.getUserDTOByLogin(login)
 
-                    call.respond(HttpStatusCode.OK, user.toUser())
+                    call.respond(HttpStatusCode.OK, user)
                 } catch (e: ApiError) {
                     call.respond(e.code, e.message)
                 }

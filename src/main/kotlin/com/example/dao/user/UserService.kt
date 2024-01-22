@@ -13,6 +13,7 @@ interface UserService {
                                 login: String, password: String): UserDTO?
     suspend fun deleteUser(id: Int?): Boolean
     suspend fun findUserByLogin(login: String): User
-    suspend fun findUserByCredentials(credential: LoginRequest): User?
+    suspend fun getUserDTOByLogin(login: String): UserDTO
+    suspend fun findUserByCredentials(credential: LoginRequest): User
     suspend fun updateUser(userId: Int?, bDay: String, email: String): Boolean
 }
