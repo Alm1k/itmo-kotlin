@@ -12,6 +12,7 @@ import com.example.models.rolesMap
 import com.example.utils.*
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.coroutines.delay
@@ -175,6 +176,23 @@ fun Route.authRouting() {
                     token -> call.respond(Token(JwtConfig.createJwtToken(token))) }
             } catch (e: ApiError) {
                 call.respond(e.code, e.message)
+            }
+        }
+    }
+
+    authenticate {
+        route("/whoami") {
+            get {
+                val principal = call.principal<JWTPrincipal>()
+                val login = principal!!.payload.getClaim("login").asString()
+
+                try {
+                    val user = userService.findUserByLogin(login)
+
+                    call.respond(HttpStatusCode.OK, user.toUser())
+                } catch (e: ApiError) {
+                    call.respond(e.code, e.message)
+                }
             }
         }
     }
