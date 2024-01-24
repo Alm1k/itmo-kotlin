@@ -5,6 +5,7 @@ import com.example.dao.cleaning.cleaningService
 import com.example.dao.hotel.hotelService
 import com.example.dao.hotelRating.hotelRatingService
 import com.example.dao.request.requestService
+import com.example.dao.room.roomService
 import com.example.models.*
 import com.example.utils.authorized
 import io.ktor.http.*
@@ -13,7 +14,11 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlin.reflect.full.createInstance
 
+data class HotelUpdateRequest(val name: String, val stageCount: Int) {
+    constructor() : this("", 0)
+}
 data class SetHotelRequest(val name: String, val stageCount: Int, val userId: Int)
 data class UpdateDirectorRequest(val userId: Int)
 
@@ -84,6 +89,26 @@ fun Route.hotelRouting() {
                             hotelService.changeDirector(hotelId, userId)
 
                             call.respond("Director for hotel $hotelId changed on $userId")
+                        } catch (e: ApiError) {
+                            call.respond(e.code, e.message)
+                        }
+                    }
+
+                    patch {
+                        val hotelId = call.parameters["roomId"]?.toIntOrNull()
+
+                        var updateInfo = HotelUpdateRequest::class.createInstance()
+                        try {
+                            updateInfo = call.receive<HotelUpdateRequest>()
+                        } catch (e: Throwable) {
+                            call.respond(HttpStatusCode.UnprocessableEntity,
+                                "failed to convert request body to class HotelUpdateRequest")
+                        }
+                        try {
+                            if (hotelId != null) {
+                                hotelService.updateHotel(hotelId, updateInfo.name, updateInfo.stageCount)
+                            }
+                            call.respond(HttpStatusCode.OK, "Hotel info updated")
                         } catch (e: ApiError) {
                             call.respond(e.code, e.message)
                         }
