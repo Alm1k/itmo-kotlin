@@ -1,6 +1,7 @@
 package com.example.routes
 
 import com.example.dao.directorInfo.directorInfoService
+import com.example.dao.managerInfo.managerInfoService
 import com.example.models.ApiError
 import com.example.models.DirectorInfoDTO
 import com.example.models.ERole
@@ -31,8 +32,10 @@ fun Route.directorInfoRouting() {
                     try {
                         data = call.receive<DirectorInfoRequest>()
                     } catch (e: Throwable) {
-                        call.respond(HttpStatusCode.UnprocessableEntity,
-                            "failed to convert request body to class DirectorInfoRequest")
+                        call.respond(
+                            HttpStatusCode.UnprocessableEntity,
+                            "failed to convert request body to class DirectorInfoRequest"
+                        )
 
                         return@post
                     }
@@ -56,6 +59,22 @@ fun Route.directorInfoRouting() {
                             call.respond(HttpStatusCode.OK, directorInfo)
                         } catch (e: ApiError) {
                             call.respond(e.code, e.message)
+                        }
+                    }
+
+                    route("/managerInfos") {
+                        get {
+                            val id =
+                                call.parameters["directorId"]?.toIntOrNull()
+                                    ?: throw IllegalArgumentException("Invalid ID")
+
+                            try {
+                                val managerInfos = managerInfoService.getAllManagersByDirectorId(id)
+
+                                call.respond(HttpStatusCode.OK, managerInfos)
+                            } catch (e: ApiError) {
+                                call.respond(e.code, e.message)
+                            }
                         }
                     }
                 }

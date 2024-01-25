@@ -12,19 +12,30 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+
 fun Route.managerInfoRouting() {
 
     authenticate {
 
         authorized(
             rolesMap.getValue(ERole.DIRECTOR).toString(),
-            rolesMap.getValue(ERole.MANAGER).toString()) {
+            rolesMap.getValue(ERole.MANAGER).toString()
+        ) {
 
             route("/api/managerInfo") {
+                get {
+                    try {
+                        val managerInfoList = managerInfoService.getAllManagers()
+                        call.respond(HttpStatusCode.OK, managerInfoList)
+                    } catch (e: ApiError) {
+                        call.respond(e.code, e.message)
+                    }
+                }
 
                 route("/{managerId}") {
                     get {
-                        val id = call.parameters["managerId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                        val id =
+                            call.parameters["managerId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
                         try {
                             val managerInfo: ManagerInfoDTO = managerInfoService.getManagerInfoByManagerId(id)
                             call.respond(HttpStatusCode.OK, managerInfo)

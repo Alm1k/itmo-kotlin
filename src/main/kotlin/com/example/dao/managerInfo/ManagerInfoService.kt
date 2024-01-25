@@ -6,6 +6,10 @@ import org.jetbrains.exposed.sql.ResultRow
 
 interface ManagerInfoService {
     fun mapManagerInfoFromResultRow(row: ResultRow): ManagerInfo
-    suspend fun addManagerInfo(managerId: Int): ManagerInfo?
+    suspend fun addManagerInfo(managerId: Int): ManagerInfo
     suspend fun getManagerInfoByManagerId(id: Int?): ManagerInfoDTO
+
+    suspend fun getAllManagersByDirectorId(directorId: Int): List<ManagerInfoDTO>
+
+    suspend fun getAllManagers(): List<ManagerInfoDTO>
 }
