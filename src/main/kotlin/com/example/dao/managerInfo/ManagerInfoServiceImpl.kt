@@ -34,6 +34,18 @@ class ManagerInfoServiceImpl : ManagerInfoService {
         }
     }
 
+    override suspend fun getManagerInfoById(id: Int?): ManagerInfoDTO = dbQuery {
+        logger.debug { "get managerInfo by  id: $id" }
+        if (id != null) {
+            ManagerInfos.select { ManagerInfos.id eq id }
+                .map { mapManagerInfoFromResultRow(it).toManagerInfo() }
+                .firstOrNull()
+                ?: throw ApiError(HttpStatusCode.NotFound, "manager info  with id $id not found")
+        } else {
+            throw ApiError(HttpStatusCode.BadRequest, "id is invalid")
+        }
+    }
+
     override suspend fun addManagerInfo(managerId: Int): ManagerInfo = dbQuery {
         logger.debug { "add managerInfo for manager with id $managerId" }
         val insertStatement = ManagerInfos.insert {

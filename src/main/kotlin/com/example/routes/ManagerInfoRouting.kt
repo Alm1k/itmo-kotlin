@@ -32,12 +32,12 @@ fun Route.managerInfoRouting() {
                     }
                 }
 
-                route("/{managerId}") {
+                route("/{id}") {
                     get {
                         val id =
-                            call.parameters["managerId"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
+                            call.parameters["id"]?.toIntOrNull() ?: throw IllegalArgumentException("Invalid ID")
                         try {
-                            val managerInfo: ManagerInfoDTO = managerInfoService.getManagerInfoByManagerId(id)
+                            val managerInfo: ManagerInfoDTO = managerInfoService.getManagerInfoById(id)
                             call.respond(HttpStatusCode.OK, managerInfo)
                         } catch (e: ApiError) {
                             call.respond(e.code, e.message)

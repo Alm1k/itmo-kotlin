@@ -9,6 +9,8 @@ interface ManagerInfoService {
     suspend fun addManagerInfo(managerId: Int): ManagerInfo
     suspend fun getManagerInfoByManagerId(id: Int?): ManagerInfoDTO
 
+    suspend fun getManagerInfoById(id: Int?): ManagerInfoDTO
+
     suspend fun getAllManagersByDirectorId(directorId: Int): List<ManagerInfoDTO>
 
     suspend fun getAllManagers(): List<ManagerInfoDTO>
